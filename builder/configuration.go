@@ -12,11 +12,13 @@ import (
 // Flags
 var (
 	configPath      = flag.String("c", "", "the config path")
+	keyBits         = flag.Int("kb", 0, "the private key bits")
 	rootProjectPath = flag.String("r", "", "the root project path")
 )
 
 // Configuration represents a configuration
 type Configuration struct {
+	KeyBits         int                   `toml:"key_bits"`
 	Logger          astilog.Configuration `toml:"logger"`
 	RootProjectPath string                `toml:"root_project_path"`
 }
@@ -30,6 +32,7 @@ var TOMLDecodeFile = func(fpath string, v interface{}) (toml.MetaData, error) {
 func NewConfiguration() Configuration {
 	// Global config
 	gc := Configuration{
+		KeyBits: 4096,
 		Logger: astilog.Configuration{
 			AppName: "go-astichat-builder",
 		},
@@ -46,6 +49,7 @@ func NewConfiguration() Configuration {
 
 	// Flag config
 	c := Configuration{
+		KeyBits:         *keyBits,
 		Logger:          astilog.FlagConfig(),
 		RootProjectPath: *rootProjectPath,
 	}

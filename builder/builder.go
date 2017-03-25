@@ -15,13 +15,9 @@ import (
 	"github.com/rs/xlog"
 )
 
-// Constants
-const (
-	keyBits = 4096
-)
-
 // Builder represents a builder
 type Builder struct {
+	keyBits         int
 	logger          xlog.Logger
 	rootProjectPath string
 }
@@ -30,6 +26,7 @@ type Builder struct {
 func NewBuilder(c Configuration, l xlog.Logger) *Builder {
 	l.Debug("Starting builder")
 	return &Builder{
+		keyBits:         c.KeyBits,
 		logger:          l,
 		rootProjectPath: c.RootProjectPath,
 	}
@@ -44,7 +41,7 @@ func (b *Builder) Close() {
 func (b *Builder) GenerateKey(passphrase string) (k []byte, err error) {
 	// Generate RSA key
 	var pk *rsa.PrivateKey
-	if pk, err = rsa.GenerateKey(rand.Reader, keyBits); err != nil {
+	if pk, err = rsa.GenerateKey(rand.Reader, b.keyBits); err != nil {
 		return
 	}
 
