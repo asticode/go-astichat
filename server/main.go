@@ -7,12 +7,6 @@ import (
 	"github.com/asticode/go-astitools/flag"
 )
 
-// LDFlags
-var (
-	PrivateKey string
-	Version    string
-)
-
 func main() {
 	// Parse command
 	var s = astiflag.Subcommand()
@@ -24,26 +18,24 @@ func main() {
 	// Init logger
 	var l = astilog.New(c.Logger)
 
-	// Init client
-	var cl *Client
+	// Init server
+	var srv *Server
 	var err error
-	if cl, err = NewClient(l).Init(c); err != nil {
+	if srv, err = NewServer(l).Init(c); err != nil {
 		l.Fatal(err)
 	}
-	defer cl.Close()
+	defer srv.Close()
 
 	// Handle signals
-	cl.HandleSignals()
+	srv.HandleSignals()
 
 	// Switch on subcommand
 	switch s {
-	case "version":
-		l.Infof("Version is %s", cl.version)
 	default:
 		// Listen and read
-		go cl.server.ListenAndRead()
+		go srv.server.ListenAndRead()
 
 		// Wait is the blocking pattern
-		cl.Wait()
+		srv.Wait()
 	}
 }

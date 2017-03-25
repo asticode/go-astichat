@@ -13,4 +13,8 @@
 
 # Project
 builder/builder
+builder/local.toml
 client/client
+client/local.toml
+server/server
+server/local.toml
