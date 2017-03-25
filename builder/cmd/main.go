@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 
+	"github.com/asticode/go-astichat/builder"
 	"github.com/asticode/go-astilog"
 	"github.com/asticode/go-astitools/flag"
 )
@@ -26,7 +27,7 @@ func main() {
 	var l = astilog.New(c.Logger)
 
 	// Init builder
-	var b = NewBuilder(c, l)
+	var b = builder.New(c.KeyBits, l, c.RootProjectPath)
 	defer b.Close()
 
 	// Switch on subcommand

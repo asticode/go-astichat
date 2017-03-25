@@ -1,4 +1,4 @@
-package main
+package builder
 
 import (
 	"bytes"
@@ -15,6 +15,14 @@ import (
 	"github.com/rs/xlog"
 )
 
+// OS
+const (
+	OSLinux     = "linux"
+	OSMaxOSX    = "macosx"
+	OSWindows   = "windows"
+	OSWindows64 = "windows_64"
+)
+
 // Builder represents a builder
 type Builder struct {
 	keyBits         int
@@ -22,13 +30,13 @@ type Builder struct {
 	rootProjectPath string
 }
 
-// NewBuilder returns a new builder
-func NewBuilder(c Configuration, l xlog.Logger) *Builder {
+// New returns a new builder
+func New(keyBits int, l xlog.Logger, rootProjectPath string) *Builder {
 	l.Debug("Starting builder")
 	return &Builder{
-		keyBits:         c.KeyBits,
+		keyBits:         keyBits,
 		logger:          l,
-		rootProjectPath: c.RootProjectPath,
+		rootProjectPath: rootProjectPath,
 	}
 }
 
@@ -88,12 +96,12 @@ func (b *Builder) Build(outputPath, outputOS string, privateKey []byte) (err err
 func (b *Builder) buildEnv(outputOS string) (o []string) {
 	o = []string{"GOPATH=" + os.Getenv("GOPATH"), "PATH=" + os.Getenv("PATH")}
 	switch outputOS {
-	case "mac":
+	case OSMaxOSX:
 		o = append(o, "GOOS=darwin", "GOARCH=386")
-	case "windows64":
-		o = append(o, "GOOS=windows", "GOARCH=amd64")
-	case "windows":
+	case OSWindows:
 		o = append(o, "GOOS=windows", "GOARCH=386")
+	case OSWindows64:
+		o = append(o, "GOOS=windows", "GOARCH=amd64")
 	default:
 		o = append(o, "GOOS=linux", "GOARCH=amd64")
 	}

@@ -12,7 +12,7 @@
 .idea/
 
 # Project
-builder/builder
+builder/cmd/builder
 builder/local.toml
 client/client
 client/local.toml
