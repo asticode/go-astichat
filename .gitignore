@@ -1,0 +1,16 @@
+# MacOS garbage
+.DS_Store
+.DS_STORE
+
+# Temp files
+*~*
+
+# Intellij project files
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Project
+builder/builder
+client/client
