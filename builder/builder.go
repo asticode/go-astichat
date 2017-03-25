@@ -85,8 +85,19 @@ func (b *Builder) Build(outputPath, outputOS string, privateKey []byte) (err err
 }
 
 // buildEnv returns the build environment variables
-func (b *Builder) buildEnv(outputOS string) []string {
-	return []string{"GOOS=linux", "GOARCH=amd64", "GOPATH=" + os.Getenv("GOPATH")}
+func (b *Builder) buildEnv(outputOS string) (o []string) {
+	o = []string{"GOPATH=" + os.Getenv("GOPATH"), "PATH=" + os.Getenv("PATH")}
+	switch outputOS {
+	case "mac":
+		o = append(o, "GOOS=darwin", "GOARCH=386")
+	case "windows64":
+		o = append(o, "GOOS=windows", "GOARCH=amd64")
+	case "windows":
+		o = append(o, "GOOS=windows", "GOARCH=386")
+	default:
+		o = append(o, "GOOS=linux", "GOARCH=amd64")
+	}
+	return
 }
 
 // GitVersion retrieves the project's git version
