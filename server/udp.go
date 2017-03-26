@@ -10,6 +10,7 @@ import (
 )
 
 // ServerUDP represents an UDP server
+// TODO Create rooms => creator controls who can join
 type ServerUDP struct {
 	logger   xlog.Logger
 	peerPool *astichat.PeerPool

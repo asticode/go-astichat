@@ -2,6 +2,8 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"os"
 
 	"github.com/asticode/go-astilog"
 	"github.com/asticode/go-astitools/flag"
@@ -26,21 +28,23 @@ func main() {
 	var l = astilog.New(c.Logger)
 
 	// Init client
-	var cl *Client
-	var err error
-	if cl, err = NewClient(l).Init(c); err != nil {
-		l.Fatal(err)
-	}
+	var cl = NewClient(l)
 	defer cl.Close()
 
 	// Handle signals
 	cl.HandleSignals()
 
 	// Switch on subcommand
+	var err error
 	switch s {
 	case "version":
-		l.Infof("Version is %s", cl.version)
+		fmt.Fprintln(os.Stdout, cl.version)
 	default:
+		// Init client
+		if err = cl.Init(c); err != nil {
+			l.Fatal(err)
+		}
+
 		// Listen and read
 		go cl.server.ListenAndRead()
 

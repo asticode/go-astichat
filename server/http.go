@@ -234,13 +234,6 @@ func HandleDownloadClientGET(rw http.ResponseWriter, r *http.Request, p httprout
 		return
 	}
 
-	// Create chatterer
-	if _, err = s.ChattererCreate(username, pub); err != nil {
-		l.Errorf("%s while creating chatterer with username %s and public key %s", err, username, pub)
-		rw.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
 	// Build client
 	var outputPath string
 	if outputPath, err = bd.Build(outputOS, b); err != nil {
@@ -249,6 +242,13 @@ func HandleDownloadClientGET(rw http.ResponseWriter, r *http.Request, p httprout
 		return
 	}
 	defer os.Remove(outputPath)
+
+	// Create chatterer
+	if _, err = s.ChattererCreate(username, pub); err != nil {
+		l.Errorf("%s while creating chatterer with username %s and public key %s", err, username, pub)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	// Read file
 	if b, err = ioutil.ReadFile(outputPath); err != nil {
@@ -262,4 +262,6 @@ func HandleDownloadClientGET(rw http.ResponseWriter, r *http.Request, p httprout
 	rw.Header().Set("Content-Type", r.Header.Get("Content-Type"))
 	rw.Header().Set("Content-Length", strconv.Itoa(len(b)))
 	rw.Write(b)
+
+	// TODO Find a way to redirect as well
 }

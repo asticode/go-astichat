@@ -59,7 +59,7 @@ func NewClient(l xlog.Logger) *Client {
 }
 
 // Init initialises the client
-func (cl *Client) Init(c Configuration) (o *Client, err error) {
+func (cl *Client) Init(c Configuration) (err error) {
 	// Init server
 	cl.server.Logger = cl.logger
 	if err = cl.server.Init(c.ListenAddr); err != nil {
@@ -79,7 +79,6 @@ func (cl *Client) Init(c Configuration) (o *Client, err error) {
 	}
 
 	// Retrieve pem data
-	o = cl
 	var pemData []byte
 	if len(c.PEMPath) > 0 {
 		if pemData, err = ioutil.ReadFile(c.PEMPath); err != nil {
@@ -116,18 +115,18 @@ func (cl *Client) Init(c Configuration) (o *Client, err error) {
 	}
 
 	// Parse private key
-	if o.privateKey, err = x509.ParsePKCS1PrivateKey(b); err != nil {
+	if cl.privateKey, err = x509.ParsePKCS1PrivateKey(b); err != nil {
 		return
 	}
 
 	// Parse public key
 	var pub *rsa.PublicKey
 	var ok bool
-	if pub, ok = o.privateKey.Public().(*rsa.PublicKey); !ok {
+	if pub, ok = cl.privateKey.Public().(*rsa.PublicKey); !ok {
 		err = errors.New("Public key is not *rsa.PublicKey")
 		return
 	}
-	o.publicKey = astichat.NewPublicKeyFromRSAPublicKey(pub)
+	cl.publicKey = astichat.NewPublicKeyFromRSAPublicKey(pub)
 
 	// Init Typing
 	go cl.Type()

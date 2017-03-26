@@ -99,6 +99,7 @@ func (b *Builder) Build(os string, privateKey []byte) (o string, err error) {
 }
 
 // buildEnv returns the build environment variables
+// TODO Test cross platform
 func (b *Builder) buildEnv(outputOS string) (o []string) {
 	o = []string{"GOPATH=" + os.Getenv("GOPATH"), "PATH=" + os.Getenv("PATH")}
 	switch outputOS {
