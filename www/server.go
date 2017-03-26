@@ -149,7 +149,7 @@ func HandleDownloadClientGET(rw http.ResponseWriter, r *http.Request, p httprout
 	// Username is unique
 	var err error
 	if _, err = s.ChattererFetchByUsername(username); err != nil && err != astichat.ErrNotFoundInStorage {
-		l.Errorf("%s while fetching peer by username %s", err, username)
+		l.Errorf("%s while fetching chatterer by username %s", err, username)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	} else if err == nil {
@@ -193,6 +193,18 @@ func HandleDownloadClientGET(rw http.ResponseWriter, r *http.Request, p httprout
 	if pub, err = astichat.NewPublicKeyFromRSAPrivateKey(pk); err != nil {
 		l.Errorf("%s while creating public key from rsa private key", err)
 		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Make sure public key is unique
+	if _, err = s.ChattererFetchByPublicKey(pub); err != nil && err != astichat.ErrNotFoundInStorage {
+		l.Errorf("%s while fetching chatterer by public key %s", err, pub)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	} else if err == astichat.ErrNotFoundInStorage {
+		l.Errorf("Public key %s is already used", pub)
+		rw.WriteHeader(http.StatusBadRequest)
+		rw.Write(append([]byte("Public key is already used")))
 		return
 	}
 
