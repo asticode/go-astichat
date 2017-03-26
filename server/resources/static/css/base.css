@@ -10,6 +10,9 @@ html, body {
     padding: 0;
     font-size: 16px;
 }
+a, a:visited {
+    color: coral;
+}
 
 .hidden {
     display: none;
@@ -58,11 +61,11 @@ td {
 
 h3 {
     font-size: 1.3em;
-    margin: 50px 0 0 0;
+    margin: 50px 0 50px 0;
 }
 
 form {
-    margin: 50px auto 50px auto;
+    margin: 0 auto 50px auto;
     width: 300px;
 }
 
