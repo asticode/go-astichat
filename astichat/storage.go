@@ -1,5 +1,12 @@
 package astichat
 
+import "errors"
+
+// Vars
+var (
+	ErrNotFoundInStorage = errors.New("not found in storage")
+)
+
 // Storage represents a storage interface
 type Storage interface {
 	ChattererCreate(username string, publicKey PublicKey) (Chatterer, error)

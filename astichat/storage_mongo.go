@@ -1,8 +1,6 @@
 package astichat
 
 import (
-	"errors"
-
 	"github.com/rs/xlog"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -12,11 +10,6 @@ import (
 const (
 	collectionNameChatterer = "chatterer"
 	databaseName            = "astichat"
-)
-
-// Vars
-var (
-	ErrNotFoundInDB = errors.New("not found in db")
 )
 
 // StorageMongo represents a mongo storage
@@ -43,7 +36,7 @@ func (s *StorageMongo) ChattererCreate(username string, publicKey PublicKey) (c 
 // ChattererFetchByPublicKey fetches a chatterer by its public key
 func (s *StorageMongo) ChattererFetchByPublicKey(publicKey PublicKey) (c Chatterer, err error) {
 	if err = s.mongo.DB(databaseName).C(collectionNameChatterer).Find(bson.M{"public_key": publicKey}).One(&c); err == mgo.ErrNotFound {
-		err = ErrNotFoundInDB
+		err = ErrNotFoundInStorage
 	}
 	return
 }
@@ -51,7 +44,7 @@ func (s *StorageMongo) ChattererFetchByPublicKey(publicKey PublicKey) (c Chatter
 // ChattererFetchByUsername fetches a chatterer by its username
 func (s *StorageMongo) ChattererFetchByUsername(username string) (c Chatterer, err error) {
 	if err = s.mongo.DB(databaseName).C(collectionNameChatterer).Find(bson.M{"username": username}).One(&c); err == mgo.ErrNotFound {
-		err = ErrNotFoundInDB
+		err = ErrNotFoundInStorage
 	}
 	return
 }

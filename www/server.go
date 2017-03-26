@@ -148,7 +148,7 @@ func HandleDownloadClientGET(rw http.ResponseWriter, r *http.Request, p httprout
 
 	// Username is unique
 	var err error
-	if _, err = s.ChattererFetchByUsername(username); err != nil && err != astichat.ErrNotFoundInDB {
+	if _, err = s.ChattererFetchByUsername(username); err != nil && err != astichat.ErrNotFoundInStorage {
 		l.Errorf("%s while fetching peer by username %s", err, username)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
