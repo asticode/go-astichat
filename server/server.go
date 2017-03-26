@@ -20,10 +20,11 @@ type Server struct {
 	peerPool    *astichat.PeerPool
 	server      *astiudp.Server
 	startedAt   time.Time
+	storage     astichat.Storage
 }
 
 // NewServer returns a new server
-func NewServer(l xlog.Logger) *Server {
+func NewServer(l xlog.Logger, stg astichat.Storage) *Server {
 	l.Debug("Starting server")
 	return &Server{
 		channelQuit: make(chan bool),
@@ -31,6 +32,7 @@ func NewServer(l xlog.Logger) *Server {
 		peerPool:    astichat.NewPeerPool(),
 		server:      astiudp.NewServer(),
 		startedAt:   time.Now(),
+		storage:     stg,
 	}
 }
 
@@ -91,12 +93,18 @@ func (s *Server) HandlePeerRegister() astiudp.ListenerFunc {
 			return
 		}
 
+		// Retrieve chatterer
+		var c astichat.Chatterer
+		if c, err = s.storage.ChattererFetchByPublicKey(b.PublicKey); err != nil {
+			return
+		}
+
 		// Peer is new to the pool
 		var p *astichat.Peer
 		var ok bool
-		if p, ok = s.peerPool.Get(b.PublicKey); !ok {
+		if p, ok = s.peerPool.Get(c.PublicKey); !ok {
 			// Create peer
-			p = astichat.NewPeer(addr, b.PublicKey)
+			p = astichat.NewPeer(addr, c.PublicKey, c.Username)
 
 			// Add peer to the pool
 			s.peerPool.Set(p)

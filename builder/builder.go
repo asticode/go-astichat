@@ -12,6 +12,8 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/asticode/go-astitools/slice"
+	"github.com/rs/xid"
 	"github.com/rs/xlog"
 )
 
@@ -20,35 +22,30 @@ const (
 	OSLinux     = "linux"
 	OSMaxOSX    = "macosx"
 	OSWindows   = "windows"
-	OSWindows64 = "windows_64"
+	OSWindows32 = "windows_32"
 )
 
 // Builder represents a builder
 type Builder struct {
-	keyBits         int
-	logger          xlog.Logger
-	rootProjectPath string
+	keyBits              int
+	Logger               xlog.Logger
+	pathRootProject      string
+	pathWorkingDirectory string
 }
 
 // New returns a new builder
-func New(keyBits int, l xlog.Logger, rootProjectPath string) *Builder {
-	l.Debug("Starting builder")
+func New(c Configuration) *Builder {
 	return &Builder{
-		keyBits:         keyBits,
-		logger:          l,
-		rootProjectPath: rootProjectPath,
+		keyBits:              c.KeyBits,
+		Logger:               xlog.NopLogger,
+		pathRootProject:      c.PathRootProject,
+		pathWorkingDirectory: c.PathWorkingDirectory,
 	}
 }
 
-// Close closes the builder
-func (b *Builder) Close() {
-	b.logger.Debug("Stopping client")
-}
-
-// GenerateKey generates an rsa key with an optional passphrase
-func (b *Builder) GenerateKey(passphrase string) (k []byte, err error) {
+// GeneratePrivateKey generates an rsa private key with an optional passphrase
+func (b *Builder) GeneratePrivateKey(passphrase string) (pk *rsa.PrivateKey, k []byte, err error) {
 	// Generate RSA key
-	var pk *rsa.PrivateKey
 	if pk, err = rsa.GenerateKey(rand.Reader, b.keyBits); err != nil {
 		return
 	}
@@ -72,21 +69,28 @@ func (b *Builder) GenerateKey(passphrase string) (k []byte, err error) {
 }
 
 // Build builds the client
-func (b *Builder) Build(outputPath, outputOS string, privateKey []byte) (err error) {
+func (b *Builder) Build(os string, privateKey []byte) (o string, err error) {
 	// Retrieve git version
 	var v []byte
-	if v, err = b.GitVersion(); err != nil {
+	if v, err = b.gitVersion(); err != nil {
 		return
 	}
 
-	// Build
+	// Init output path
+	o = fmt.Sprintf("%s/%s", b.pathWorkingDirectory, xid.New().String())
+
+	// Init ldflags
 	var ldflags = fmt.Sprintf("-X main.PrivateKey=%s -X main.Version=%s", base64.StdEncoding.EncodeToString(privateKey), v)
-	var cmd = exec.Command("go", "build", "-o", fmt.Sprintf("%s/client/client", outputPath), "-ldflags", ldflags, fmt.Sprintf("%s/client", b.rootProjectPath))
-	cmd.Env = b.buildEnv(outputOS)
-	b.logger.Debugf("Running %s", strings.Join(append(cmd.Env, cmd.Args...), " "))
-	var o []byte
-	if o, err = cmd.CombinedOutput(); err != nil {
-		err = fmt.Errorf("%s: %s", err, string(o))
+
+	// Init cmd
+	var cmd = exec.Command("go", "build", "-o", o, "-ldflags", ldflags, "github.com/asticode/go-astichat/client")
+	cmd.Env = b.buildEnv(os)
+
+	// Exec
+	b.Logger.Debugf("Running %s", strings.Join(append(cmd.Env, cmd.Args...), " "))
+	var co []byte
+	if co, err = cmd.CombinedOutput(); err != nil {
+		err = fmt.Errorf("%s: %s", err, string(co))
 		return
 	}
 	return
@@ -99,9 +103,9 @@ func (b *Builder) buildEnv(outputOS string) (o []string) {
 	case OSMaxOSX:
 		o = append(o, "GOOS=darwin", "GOARCH=386")
 	case OSWindows:
-		o = append(o, "GOOS=windows", "GOARCH=386")
-	case OSWindows64:
 		o = append(o, "GOOS=windows", "GOARCH=amd64")
+	case OSWindows32:
+		o = append(o, "GOOS=windows", "GOARCH=386")
 	default:
 		o = append(o, "GOOS=linux", "GOARCH=amd64")
 	}
@@ -109,12 +113,17 @@ func (b *Builder) buildEnv(outputOS string) (o []string) {
 }
 
 // GitVersion retrieves the project's git version
-func (b *Builder) GitVersion() (o []byte, err error) {
-	var cmd = exec.Command("git", "--git-dir", fmt.Sprintf("%s/.git", b.rootProjectPath), "rev-parse", "HEAD")
-	b.logger.Debugf("Running %s", strings.Join(cmd.Args, " "))
+func (b *Builder) gitVersion() (o []byte, err error) {
+	var cmd = exec.Command("git", "--git-dir", fmt.Sprintf("%s/.git", b.pathRootProject), "rev-parse", "HEAD")
+	b.Logger.Debugf("Running %s", strings.Join(cmd.Args, " "))
 	if o, err = cmd.CombinedOutput(); err != nil {
 		return
 	}
 	o = bytes.TrimSpace(o)
 	return
+}
+
+// ValidOS checks whether the OS is valid for the builder
+func ValidOS(os string) bool {
+	return astislice.InStringSlice(os, []string{OSLinux, OSMaxOSX, OSWindows, OSWindows32})
 }

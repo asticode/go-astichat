@@ -121,13 +121,13 @@ func (cl *Client) Init(c Configuration) (o *Client, err error) {
 	}
 
 	// Parse public key
-	var pk *rsa.PublicKey
+	var pub *rsa.PublicKey
 	var ok bool
-	if pk, ok = o.privateKey.Public().(*rsa.PublicKey); !ok {
+	if pub, ok = o.privateKey.Public().(*rsa.PublicKey); !ok {
 		err = errors.New("Public key is not *rsa.PublicKey")
 		return
 	}
-	o.publicKey = astichat.PublicKey{PublicKey: pk}
+	o.publicKey = astichat.NewPublicKeyFromRSAPublicKey(pub)
 
 	// Init Typing
 	go cl.Type()
@@ -255,7 +255,7 @@ func (c *Client) Type() {
 				// Encrypt message
 				var message, hash, signature []byte
 				var err error
-				if message, hash, signature, err = c.encryptMessage(line, p.PublicKey.PublicKey); err != nil {
+				if message, hash, signature, err = c.encryptMessage(line, p.PublicKey.Key()); err != nil {
 					c.logger.Errorf("%s while encrypting message %s to %s")
 					continue
 				}
@@ -317,7 +317,7 @@ func (c *Client) HandlePeerTyped() astiudp.ListenerFunc {
 		if p, ok := c.peerPool.Get(b.PublicKey); ok {
 			// Decrypt message
 			var m []byte
-			if m, err = c.decryptMessage(b.Message, b.Hash, b.Signature, p.PublicKey.PublicKey); err != nil {
+			if m, err = c.decryptMessage(b.Message, b.Hash, b.Signature, p.PublicKey.Key()); err != nil {
 				return
 			}
 

@@ -14,7 +14,10 @@
 # Project
 builder/cmd/builder
 builder/local.toml
-client/client
+client/test
 client/local.toml
 server/server
 server/local.toml
+www/local.toml
+www/test
+www/www

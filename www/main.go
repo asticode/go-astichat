@@ -4,6 +4,7 @@ import (
 	"flag"
 
 	"github.com/asticode/go-astichat/astichat"
+	"github.com/asticode/go-astichat/builder"
 	"github.com/asticode/go-astilog"
 	"github.com/asticode/go-astimgo"
 	"github.com/asticode/go-astitools/flag"
@@ -21,6 +22,10 @@ func main() {
 	// Init logger
 	var l = astilog.New(c.Logger)
 
+	// Init builder
+	var b = builder.New(c.Builder)
+	b.Logger = l
+
 	// Init mongo
 	var ms *mgo.Session
 	var err error
@@ -29,26 +34,15 @@ func main() {
 	}
 	defer ms.Close()
 
-	// Init storage
+	// Init mongo storage
 	var stg = astichat.NewStorageMongo(l, ms)
-
-	// Init server
-	var srv *Server
-	if srv, err = NewServer(l, stg).Init(c); err != nil {
-		l.Fatal(err)
-	}
-	defer srv.Close()
-
-	// Handle signals
-	srv.HandleSignals()
 
 	// Switch on subcommand
 	switch s {
 	default:
-		// Listen and read
-		go srv.server.ListenAndRead()
-
-		// Wait is the blocking pattern
-		srv.Wait()
+		// Server
+		if err := Serve(c, l, b, stg); err != nil {
+			l.Fatal(err)
+		}
 	}
 }

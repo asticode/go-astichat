@@ -1,0 +1,128 @@
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    background-color: #1F1F1F;
+    color: #fff;
+    font-family: "Source Sans Pro";
+    margin: 0;
+    padding: 0;
+    font-size: 16px;
+}
+
+.hidden {
+    display: none;
+}
+
+.wrapper {
+    text-align: center;
+    padding: 3em;
+    width: 100%;
+}
+
+h1 {
+    font-size: 5em;
+    margin: 0;
+}
+
+h2 {
+    font-size: 1.5em;
+    margin: 0;
+}
+
+.wrapper.light {
+    color: #1F1F1F;
+    background-color: #fff;
+}
+
+.wrapper.no-padding {
+    padding: 0;
+}
+
+table, tbody, tr {
+    border: none;
+    padding: 0;
+    margin: 0;
+    vertical-align: top;
+    width: 100%;
+}
+
+td {
+    border: none;
+    margin: 0;
+    padding: 20px;
+    text-align: center;
+    width: 50%;
+}
+
+h3 {
+    font-size: 1.3em;
+    margin: 50px 0 0 0;
+}
+
+form {
+    margin: 50px auto 50px auto;
+    width: 300px;
+}
+
+button {
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.15) inset, 0 1px 1px rgba(0, 0, 0, 0.075);
+    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.2);
+    -moz-user-select: none;
+    background-image: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-block;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.42857;
+    margin-bottom: 0;
+    padding: 10px 20px;
+    text-align: center;
+    vertical-align: middle;
+    white-space: nowrap;
+    color: #ffffff;
+}
+
+.btn-full {
+    width: 100%;
+}
+
+.btn-danger {
+    background-image: linear-gradient(to bottom, #d9534f 0px, #c12e2a 100%);
+    background-repeat: repeat-x;
+    border-color: #b92c28;
+}
+
+.btn-success {
+    background-image: linear-gradient(to bottom,#5cb85c 0,#419641 100%);
+    background-repeat: repeat-x;
+    border-color: #3e8f3e;
+}
+
+input[type="text"], input[type="password"], select, textarea {
+    display: block;
+    margin: 0 0 5px 0;
+    width: 100%;
+    box-shadow: none;
+    border-radius: 4px;
+    padding: 10px 15px;
+    border: none;
+}
+
+input[type="text"]:focus {
+    outline: none;
+}
+
+.checkbox {
+    padding: 0 0 6px 0;
+    text-align: left;
+}
+
+input[type="checkbox"] {
+    margin: 0;
+    position: relative;
+    top: 3px;
+}
