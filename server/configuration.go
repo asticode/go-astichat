@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/asticode/go-astichat/builder"
 	"github.com/asticode/go-astilog"
 	"github.com/asticode/go-astimgo"
 	"github.com/imdario/mergo"
@@ -13,16 +14,28 @@ import (
 
 // Flags
 var (
-	configPath = flag.String("c", "", "the config path")
-	listenAddr = flag.String("l", "", "the listen addr")
+	addrHTTP      = flag.String("http-addr", "", "the HTTP listen addr")
+	addrUDP       = flag.String("udp-addr", "", "the UDP listen addr")
+	configPath    = flag.String("c", "", "the config path")
+	pathStatic    = flag.String("static", "", "the static path")
+	pathTemplates = flag.String("templates", "", "the templates path")
 )
 
 // Configuration represents a configuration
 // TODO Find a way not to put the mongo configuration here so that people who want to use another storage can
 type Configuration struct {
-	ListenAddr string                `toml:"listen_addr"`
-	Logger     astilog.Configuration `toml:"logger"`
-	Mongo      astimgo.Configuration `toml:"mongo"`
+	Addr          ConfigurationAddr     `toml:"addr"`
+	Builder       builder.Configuration `toml:"builder"`
+	Logger        astilog.Configuration `toml:"logger"`
+	Mongo         astimgo.Configuration `toml:"mongo"`
+	PathStatic    string                `toml:"path_static"`
+	PathTemplates string                `toml:"path_templates"`
+}
+
+// ConfigurationAddr represents an addr configuration
+type ConfigurationAddr struct {
+	HTTP string `toml:"http"`
+	UDP  string `toml:"udp"`
 }
 
 // TOMLDecodeFile allows testing functions using it
@@ -34,12 +47,17 @@ var TOMLDecodeFile = func(fpath string, v interface{}) (toml.MetaData, error) {
 func NewConfiguration() Configuration {
 	// Global config
 	gc := Configuration{
+		Builder: builder.Configuration{
+			KeyBits: 4096,
+		},
 		Logger: astilog.Configuration{
 			AppName: "go-astichat-server",
 		},
 		Mongo: astimgo.Configuration{
 			Timeout: 10 * time.Second,
 		},
+		PathStatic:    "static",
+		PathTemplates: "templates",
 	}
 
 	// Local config
@@ -52,9 +70,15 @@ func NewConfiguration() Configuration {
 
 	// Flag config
 	c := Configuration{
-		ListenAddr: *listenAddr,
-		Logger:     astilog.FlagConfig(),
-		Mongo:      astimgo.FlagConfig(),
+		Addr: ConfigurationAddr{
+			HTTP: *addrHTTP,
+			UDP:  *addrUDP,
+		},
+		Builder:       builder.FlagConfig(),
+		Logger:        astilog.FlagConfig(),
+		Mongo:         astimgo.FlagConfig(),
+		PathStatic:    *pathStatic,
+		PathTemplates: *pathTemplates,
 	}
 
 	// Merge configs

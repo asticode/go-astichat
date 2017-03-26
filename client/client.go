@@ -213,6 +213,9 @@ func (c *Client) HandlePeerRegistered() astiudp.ListenerFunc {
 			return
 		}
 
+		// Print
+		fmt.Fprintln(os.Stdout, "You're now connected")
+
 		// Loop through peers
 		for _, p := range ps {
 			// Add peer to pool

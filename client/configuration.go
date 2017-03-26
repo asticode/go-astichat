@@ -37,6 +37,7 @@ func NewConfiguration() Configuration {
 		Logger: astilog.Configuration{
 			AppName: "go-astichat-client",
 		},
+		ServerAddr: ServerAddr,
 	}
 
 	// Local config

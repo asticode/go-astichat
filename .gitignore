@@ -12,12 +12,8 @@
 .idea/
 
 # Project
-builder/cmd/builder
-builder/local.toml
 client/test
 client/local.toml
-server/server
 server/local.toml
-www/local.toml
-www/test
-www/www
+server/server
+server/test

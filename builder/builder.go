@@ -29,8 +29,9 @@ const (
 type Builder struct {
 	keyBits              int
 	Logger               xlog.Logger
-	pathRootProject      string
+	pathProjectRoot      string
 	pathWorkingDirectory string
+	serverAddr           string
 }
 
 // New returns a new builder
@@ -38,8 +39,9 @@ func New(c Configuration) *Builder {
 	return &Builder{
 		keyBits:              c.KeyBits,
 		Logger:               xlog.NopLogger,
-		pathRootProject:      c.PathRootProject,
+		pathProjectRoot:      c.PathProjectRoot,
 		pathWorkingDirectory: c.PathWorkingDirectory,
+		serverAddr:           c.ServerAddr,
 	}
 }
 
@@ -80,7 +82,7 @@ func (b *Builder) Build(os string, privateKey []byte) (o string, err error) {
 	o = fmt.Sprintf("%s/%s", b.pathWorkingDirectory, xid.New().String())
 
 	// Init ldflags
-	var ldflags = fmt.Sprintf("-X main.PrivateKey=%s -X main.Version=%s", base64.StdEncoding.EncodeToString(privateKey), v)
+	var ldflags = fmt.Sprintf("-X main.PrivateKey=%s -X main.ServerAddr=%s -X main.Version=%s", base64.StdEncoding.EncodeToString(privateKey), b.serverAddr, v)
 
 	// Init cmd
 	var cmd = exec.Command("go", "build", "-o", o, "-ldflags", ldflags, "github.com/asticode/go-astichat/client")
@@ -114,7 +116,7 @@ func (b *Builder) buildEnv(outputOS string) (o []string) {
 
 // GitVersion retrieves the project's git version
 func (b *Builder) gitVersion() (o []byte, err error) {
-	var cmd = exec.Command("git", "--git-dir", fmt.Sprintf("%s/.git", b.pathRootProject), "rev-parse", "HEAD")
+	var cmd = exec.Command("git", "--git-dir", fmt.Sprintf("%s/.git", b.pathProjectRoot), "rev-parse", "HEAD")
 	b.Logger.Debugf("Running %s", strings.Join(cmd.Args, " "))
 	if o, err = cmd.CombinedOutput(); err != nil {
 		return
@@ -123,7 +125,7 @@ func (b *Builder) gitVersion() (o []byte, err error) {
 	return
 }
 
-// ValidOS checks whether the OS is valid for the builder
-func ValidOS(os string) bool {
+// IsValidOS checks whether the OS is valid for the builder
+func IsValidOS(os string) bool {
 	return astislice.InStringSlice(os, []string{OSLinux, OSMaxOSX, OSWindows, OSWindows32})
 }

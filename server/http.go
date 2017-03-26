@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/rsa"
 	"fmt"
 	"io/ioutil"
@@ -14,7 +15,6 @@ import (
 	"github.com/asticode/go-astitools/template"
 	"github.com/julienschmidt/httprouter"
 	"github.com/rs/xlog"
-	"golang.org/x/net/context"
 )
 
 // Constants
@@ -25,8 +25,38 @@ const (
 	contextKeyTemplates = "templates"
 )
 
-// Serve initialize an HTTP server
-func Serve(c Configuration, l xlog.Logger, b *builder.Builder, s astichat.Storage) (err error) {
+// ServerHTTP represents an HTTP server
+type ServerHTTP struct {
+	addr       string
+	builder    *builder.Builder
+	logger     xlog.Logger
+	pathStatic string
+	storage    astichat.Storage
+	templates  *template.Template
+}
+
+// NewServerHTTP creates a new HTTP server
+func NewServerHTTP(l xlog.Logger, addr, pathStatic string, b *builder.Builder, stg astichat.Storage) *ServerHTTP {
+	return &ServerHTTP{
+		addr:       addr,
+		builder:    b,
+		logger:     l,
+		pathStatic: pathStatic,
+		storage:    stg,
+	}
+}
+
+// Init initializes the HTTP server
+func (s *ServerHTTP) Init(c Configuration) (err error) {
+	// Parse templates
+	if s.templates, err = astitemplate.ParseDirectory(c.PathTemplates, ".html"); err != nil {
+		return
+	}
+	return
+}
+
+// ListenAndServe listens and serve
+func (s *ServerHTTP) ListenAndServe() {
 	// Init router
 	var r = httprouter.New()
 
@@ -35,20 +65,25 @@ func Serve(c Configuration, l xlog.Logger, b *builder.Builder, s astichat.Storag
 	r.POST("/download/client", HandleDownloadClientGET)
 
 	// Static files
-	r.ServeFiles("/static/*filepath", http.Dir(c.PathStatic))
-
-	// Parse templates
-	var t *template.Template
-	if t, err = astitemplate.ParseDirectory(c.PathTemplates, ".html"); err != nil {
-		return
-	}
+	r.ServeFiles("/static/*filepath", http.Dir(s.pathStatic))
 
 	// Serve
-	l.Debugf("Listening and serving on %s", c.ListenAddr)
-	if err = http.ListenAndServe(c.ListenAddr, AdaptHandler(r, l, b, s, t)); err != nil {
-		return
+	s.logger.Debugf("Listening and serving on http://%s", s.addr)
+	if err := http.ListenAndServe(s.addr, s.AdaptHandler(r)); err != nil {
+		s.logger.Fatal(err)
 	}
 	return
+}
+
+// AdaptHandle adapts a handler
+func (s *ServerHTTP) AdaptHandler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		r = r.WithContext(NewContextWithBuilder(r.Context(), s.builder))
+		r = r.WithContext(NewContextWithLogger(r.Context(), s.logger))
+		r = r.WithContext(NewContextWithStorage(r.Context(), s.storage))
+		r = r.WithContext(NewContextWithTemplates(r.Context(), s.templates))
+		h.ServeHTTP(rw, r)
+	})
 }
 
 // NewContextWithBuilder creates a context with the builder
@@ -105,17 +140,6 @@ func TemplatesFromContext(ctx context.Context) *template.Template {
 	return &template.Template{}
 }
 
-// AdaptHandle adapts a handler
-func AdaptHandler(h http.Handler, l xlog.Logger, b *builder.Builder, s astichat.Storage, t *template.Template) http.Handler {
-	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		r = r.WithContext(NewContextWithBuilder(r.Context(), b))
-		r = r.WithContext(NewContextWithLogger(r.Context(), l))
-		r = r.WithContext(NewContextWithStorage(r.Context(), s))
-		r = r.WithContext(NewContextWithTemplates(r.Context(), t))
-		h.ServeHTTP(rw, r)
-	})
-}
-
 // HandleHomepageGET returns the homepage handler
 func HandleHomepageGET(rw http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	// Init
@@ -131,6 +155,7 @@ func HandleHomepageGET(rw http.ResponseWriter, r *http.Request, p httprouter.Par
 }
 
 // HandleDownloadClientGET returns the download client handler
+// TODO Find a way to upgrade versions while keeping safely private key
 func HandleDownloadClientGET(rw http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	// Init
 	var bd = BuilderFromContext(r.Context())
@@ -142,6 +167,7 @@ func HandleDownloadClientGET(rw http.ResponseWriter, r *http.Request, p httprout
 	if len(username) == 0 {
 		l.Error("Empty username")
 		rw.WriteHeader(http.StatusBadRequest)
+		// TODO Find a way to handle errors in JS as well
 		rw.Write([]byte("Please enter a username"))
 		return
 	}
@@ -170,7 +196,7 @@ func HandleDownloadClientGET(rw http.ResponseWriter, r *http.Request, p httprout
 
 	// OS is valid
 	var outputOS = r.FormValue("os")
-	if !builder.ValidOS(outputOS) {
+	if !builder.IsValidOS(outputOS) {
 		l.Errorf("Invalid os %s", outputOS)
 		rw.WriteHeader(http.StatusBadRequest)
 		rw.Write([]byte(fmt.Sprintf("Invalid os %s", outputOS)))
@@ -201,7 +227,7 @@ func HandleDownloadClientGET(rw http.ResponseWriter, r *http.Request, p httprout
 		l.Errorf("%s while fetching chatterer by public key %s", err, pub)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
-	} else if err == astichat.ErrNotFoundInStorage {
+	} else if err == nil {
 		l.Errorf("Public key %s is already used", pub)
 		rw.WriteHeader(http.StatusBadRequest)
 		rw.Write(append([]byte("Public key is already used")))

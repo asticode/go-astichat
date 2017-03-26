@@ -10,6 +10,7 @@ import (
 // LDFlags
 var (
 	PrivateKey string
+	ServerAddr string
 	Version    string
 )
 
