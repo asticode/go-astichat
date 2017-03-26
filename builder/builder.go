@@ -23,13 +23,13 @@ const (
 	OSMaxOSX    = "macosx"
 	OSWindows   = "windows"
 	OSWindows32 = "windows_32"
+	repoName    = "github.com/asticode/go-astichat"
 )
 
 // Builder represents a builder
 type Builder struct {
 	keyBits              int
 	Logger               xlog.Logger
-	pathProjectRoot      string
 	pathWorkingDirectory string
 	serverAddr           string
 }
@@ -39,7 +39,6 @@ func New(c Configuration) *Builder {
 	return &Builder{
 		keyBits:              c.KeyBits,
 		Logger:               xlog.NopLogger,
-		pathProjectRoot:      c.PathProjectRoot,
 		pathWorkingDirectory: c.PathWorkingDirectory,
 		serverAddr:           c.ServerAddr,
 	}
@@ -85,10 +84,11 @@ func (b *Builder) Build(os string, privateKey []byte) (o string, err error) {
 	var ldflags = fmt.Sprintf("-X main.PrivateKey=%s -X main.ServerAddr=%s -X main.Version=%s", base64.StdEncoding.EncodeToString(privateKey), b.serverAddr, v)
 
 	// Init cmd
-	var cmd = exec.Command("go", "build", "-o", o, "-ldflags", ldflags, "github.com/asticode/go-astichat/client")
+	var cmd = exec.Command("go", "build", "-o", o, "-ldflags", ldflags, repoName+"/client")
 	cmd.Env = b.buildEnv(os)
 
 	// Exec
+	// TODO Hide private key in logs
 	b.Logger.Debugf("Running %s", strings.Join(append(cmd.Env, cmd.Args...), " "))
 	var co []byte
 	if co, err = cmd.CombinedOutput(); err != nil {
@@ -117,7 +117,7 @@ func (b *Builder) buildEnv(outputOS string) (o []string) {
 
 // GitVersion retrieves the project's git version
 func (b *Builder) gitVersion() (o []byte, err error) {
-	var cmd = exec.Command("git", "--git-dir", fmt.Sprintf("%s/.git", b.pathProjectRoot), "rev-parse", "HEAD")
+	var cmd = exec.Command("git", "--git-dir", fmt.Sprintf("%s/src/%s/.git", os.Getenv("GOPATH"), repoName), "rev-parse", "HEAD")
 	b.Logger.Debugf("Running %s", strings.Join(cmd.Args, " "))
 	if o, err = cmd.CombinedOutput(); err != nil {
 		return
