@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/rsa"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -155,7 +154,7 @@ func HandleHomepageGET(rw http.ResponseWriter, r *http.Request, p httprouter.Par
 }
 
 // HandleDownloadClientGET returns the download client handler
-// TODO Find a way to upgrade versions while keeping safely private key
+// TODO Find a way to upgrade versions while keeping safely private key => encrypted token which contains date
 func HandleDownloadClientGET(rw http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	// Init
 	var bd = BuilderFromContext(r.Context())
@@ -203,32 +202,46 @@ func HandleDownloadClientGET(rw http.ResponseWriter, r *http.Request, p httprout
 		return
 	}
 
-	// TODO Handle given public keys
-
-	// Generate key
-	var pk *rsa.PrivateKey
-	var b []byte
-	if pk, b, err = bd.GeneratePrivateKey(password); err != nil {
-		l.Errorf("%s while generating private key with password %s", err, password)
+	// Generate client's private key
+	var prvClient *astichat.PrivateKey
+	if prvClient, err = astichat.NewPrivateKey(password); err != nil {
+		l.Errorf("%s while generating private key", err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	// Init public key
-	var pub astichat.PublicKey
-	if pub, err = astichat.NewPublicKeyFromRSAPrivateKey(pk); err != nil {
-		l.Errorf("%s while creating public key from rsa private key", err)
+	// Get client's public key
+	var pubClient *astichat.PublicKey
+	if pubClient, err = prvClient.PublicKey(); err != nil {
+		l.Errorf("%s while getting public key from rsa private key", err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	// Make sure public key is unique
-	if _, err = s.ChattererFetchByPublicKey(pub); err != nil && err != astichat.ErrNotFoundInStorage {
-		l.Errorf("%s while fetching chatterer by public key %s", err, pub)
+	// Generate server's private key
+	// TODO Add passphrase too ? For unmarshal, use global variable taken from conf ?
+	var prvServer *astichat.PrivateKey
+	if prvServer, err = astichat.NewPrivateKey(""); err != nil {
+		l.Errorf("%s while generating private key", err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Get server's public key
+	var pubServer *astichat.PublicKey
+	if pubServer, err = prvServer.PublicKey(); err != nil {
+		l.Errorf("%s while getting public key from rsa private key", err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Make sure client's public key is unique
+	if _, err = s.ChattererFetchByPublicKey(pubClient); err != nil && err != astichat.ErrNotFoundInStorage {
+		l.Errorf("%s while fetching chatterer by public key %s", err, pubClient)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	} else if err == nil {
-		l.Errorf("Public key %s is already used", pub)
+		l.Errorf("Public key %s is already used", pubClient)
 		rw.WriteHeader(http.StatusBadRequest)
 		rw.Write(append([]byte("Public key is already used")))
 		return
@@ -236,7 +249,7 @@ func HandleDownloadClientGET(rw http.ResponseWriter, r *http.Request, p httprout
 
 	// Build client
 	var outputPath string
-	if outputPath, err = bd.Build(outputOS, b); err != nil {
+	if outputPath, err = bd.Build(outputOS, prvClient, pubServer); err != nil {
 		l.Errorf("%s while building client for os %s", err, outputOS)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
@@ -244,13 +257,14 @@ func HandleDownloadClientGET(rw http.ResponseWriter, r *http.Request, p httprout
 	defer os.Remove(outputPath)
 
 	// Create chatterer
-	if _, err = s.ChattererCreate(username, pub); err != nil {
-		l.Errorf("%s while creating chatterer with username %s and public key %s", err, username, pub)
+	if _, err = s.ChattererCreate(username, pubClient, prvServer); err != nil {
+		l.Errorf("%s while creating chatterer with username %s and public key %s", err, username, pubClient)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	// Read file
+	var b []byte
 	if b, err = ioutil.ReadFile(outputPath); err != nil {
 		l.Errorf("%s while reading file %s", err, outputPath)
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -258,6 +272,7 @@ func HandleDownloadClientGET(rw http.ResponseWriter, r *http.Request, p httprout
 	}
 
 	// Set headers
+	// TODO Are those headers correct ?
 	rw.Header().Set("Content-Disposition", "attachment; filename=astichat.exe")
 	rw.Header().Set("Content-Type", r.Header.Get("Content-Type"))
 	rw.Header().Set("Content-Length", strconv.Itoa(len(b)))

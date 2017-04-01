@@ -13,7 +13,6 @@ import (
 var (
 	configPath = flag.String("c", "", "the config path")
 	listenAddr = flag.String("l", "", "the listen addr")
-	pemPath    = flag.String("pem", "", "your pem path")
 	serverAddr = flag.String("s", "", "the server addr")
 )
 
@@ -21,7 +20,6 @@ var (
 type Configuration struct {
 	ListenAddr string                `toml:"listen_addr"`
 	Logger     astilog.Configuration `toml:"logger"`
-	PEMPath    string                `toml:"pem_path"`
 	ServerAddr string                `toml:"server_addr"`
 }
 
@@ -52,7 +50,6 @@ func NewConfiguration() Configuration {
 	c := Configuration{
 		ListenAddr: *listenAddr,
 		Logger:     astilog.FlagConfig(),
-		PEMPath:    *pemPath,
 		ServerAddr: *serverAddr,
 	}
 

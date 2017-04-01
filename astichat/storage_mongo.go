@@ -27,14 +27,14 @@ func NewStorageMongo(l xlog.Logger, s *mgo.Session) *StorageMongo {
 }
 
 // ChattererCreate creates a chatterer based on a username and a public key
-func (s *StorageMongo) ChattererCreate(username string, publicKey PublicKey) (c Chatterer, err error) {
-	c = Chatterer{PublicKey: publicKey, Username: username}
+func (s *StorageMongo) ChattererCreate(username string, pubClient *PublicKey, prvServer *PrivateKey) (c Chatterer, err error) {
+	c = Chatterer{ClientPublicKey: pubClient, ServerPrivateKey: prvServer, Username: username}
 	err = s.mongo.DB(databaseName).C(collectionNameChatterer).Insert(&c)
 	return
 }
 
 // ChattererFetchByPublicKey fetches a chatterer by its public key
-func (s *StorageMongo) ChattererFetchByPublicKey(publicKey PublicKey) (c Chatterer, err error) {
+func (s *StorageMongo) ChattererFetchByPublicKey(publicKey *PublicKey) (c Chatterer, err error) {
 	if err = s.mongo.DB(databaseName).C(collectionNameChatterer).Find(bson.M{"public_key": publicKey}).One(&c); err == mgo.ErrNotFound {
 		err = ErrNotFoundInStorage
 	}

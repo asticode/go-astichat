@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 	"net"
 
+	"fmt"
+
+	"bytes"
+
 	"github.com/asticode/go-astichat/astichat"
 	"github.com/asticode/go-astiudp"
 	"github.com/rs/xlog"
@@ -56,23 +60,35 @@ func (s *ServerUDP) ListenAndServe() {
 func (s *ServerUDP) HandlePeerRegister() astiudp.ListenerFunc {
 	return func(as *astiudp.Server, eventName string, payload json.RawMessage, addr *net.UDPAddr) (err error) {
 		// Unmarshal
-		var b astichat.Body
-		if err = json.Unmarshal(payload, &b); err != nil {
+		var body astichat.Body
+		if err = json.Unmarshal(payload, &body); err != nil {
 			return
 		}
 
 		// Retrieve chatterer
 		var c astichat.Chatterer
-		if c, err = s.storage.ChattererFetchByPublicKey(b.PublicKey); err != nil {
+		if c, err = s.storage.ChattererFetchByPublicKey(body.PublicKey); err != nil {
 			return
 		}
 
 		// Peer is new to the pool
 		var p *astichat.Peer
 		var ok bool
-		if p, ok = s.peerPool.Get(c.PublicKey); !ok {
+		if p, ok = s.peerPool.Get(c.ClientPublicKey); !ok {
+			// Decrypt message
+			var b []byte
+			if b, err = body.EncryptedMessage.Decrypt(c.ClientPublicKey, c.ServerPrivateKey); err != nil {
+				return
+			}
+
+			// Validate message
+			if !bytes.Equal(b, astichat.MessageRegister) {
+				err = fmt.Errorf("Invalid message register %s", string(b))
+				return
+			}
+
 			// Create peer
-			p = astichat.NewPeer(addr, c.PublicKey, c.Username)
+			p = astichat.NewPeer(addr, c)
 
 			// Add peer to the pool
 			s.peerPool.Set(p)
@@ -87,7 +103,7 @@ func (s *ServerUDP) HandlePeerRegister() astiudp.ListenerFunc {
 		var ps []*astichat.Peer
 		for _, pp := range s.peerPool.Peers() {
 			// Peer is not the one which just registered
-			if p.PublicKey.String() != pp.PublicKey.String() {
+			if p.ClientPublicKey.String() != pp.ClientPublicKey.String() {
 				// Send peer.joined event
 				s.logger.Debugf("Sending peer.joined to %s", pp)
 				if err = as.Write(astichat.EventNamePeerJoined, p, pp.Addr); err != nil {
@@ -110,15 +126,27 @@ func (s *ServerUDP) HandlePeerRegister() astiudp.ListenerFunc {
 func (s *ServerUDP) HandlePeerDisconnect() astiudp.ListenerFunc {
 	return func(as *astiudp.Server, eventName string, payload json.RawMessage, addr *net.UDPAddr) (err error) {
 		// Unmarshal
-		var b astichat.Body
-		if err = json.Unmarshal(payload, &b); err != nil {
+		var body astichat.Body
+		if err = json.Unmarshal(payload, &body); err != nil {
 			return
 		}
 
 		// Peer is in the pool
-		if p, ok := s.peerPool.Get(b.PublicKey); ok {
+		if p, ok := s.peerPool.Get(body.PublicKey); ok {
+			// Decrypt message
+			var b []byte
+			if b, err = body.EncryptedMessage.Decrypt(p.ClientPublicKey, p.ServerPrivateKey); err != nil {
+				return
+			}
+
+			// Validate message
+			if !bytes.Equal(b, astichat.MessageDisconnect) {
+				err = fmt.Errorf("Invalid message disconnect %s", string(b))
+				return
+			}
+
 			// Delete from the pool
-			s.peerPool.Del(b.PublicKey)
+			s.peerPool.Del(p.ClientPublicKey)
 
 			// Log
 			s.logger.Infof("%s has left us", p)

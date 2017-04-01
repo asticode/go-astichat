@@ -47,9 +47,6 @@ var TOMLDecodeFile = func(fpath string, v interface{}) (toml.MetaData, error) {
 func NewConfiguration() Configuration {
 	// Global config
 	gc := Configuration{
-		Builder: builder.Configuration{
-			KeyBits: 4096,
-		},
 		Logger: astilog.Configuration{
 			AppName: "go-astichat-server",
 		},

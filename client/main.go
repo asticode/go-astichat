@@ -11,9 +11,10 @@ import (
 
 // LDFlags
 var (
-	PrivateKey string
-	ServerAddr string
-	Version    string
+	ClientPrivateKey string
+	ServerAddr       string
+	ServerPublicKey  string
+	Version          string
 )
 
 func main() {
@@ -35,6 +36,7 @@ func main() {
 	cl.HandleSignals()
 
 	// Switch on subcommand
+	// TODO Print upgrade token which contains date
 	var err error
 	switch s {
 	case "version":

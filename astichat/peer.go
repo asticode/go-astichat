@@ -1,6 +1,9 @@
 package astichat
 
-import "net"
+import (
+	"fmt"
+	"net"
+)
 
 // Peer represents a peer
 type Peer struct {
@@ -9,17 +12,14 @@ type Peer struct {
 }
 
 // NewPeer creates a new peer
-func NewPeer(addr *net.UDPAddr, pk PublicKey, username string) *Peer {
+func NewPeer(addr *net.UDPAddr, c Chatterer) *Peer {
 	return &Peer{
-		Addr: addr,
-		Chatterer: Chatterer{
-			PublicKey: pk,
-			Username:  username,
-		},
+		Addr:      addr,
+		Chatterer: c,
 	}
 }
 
 // String allows Peer to implement the Stringer interface
 func (p Peer) String() string {
-	return p.Username
+	return fmt.Sprintf("%s@%s", p.Username, p.Addr)
 }

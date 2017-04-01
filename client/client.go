@@ -3,17 +3,8 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"crypto"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/sha512"
-	"crypto/x509"
-	"encoding/base64"
 	"encoding/json"
-	"encoding/pem"
-	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/signal"
@@ -26,23 +17,17 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-// Vars
-var (
-	pubHash = sha512.New()
-	prvHash = crypto.SHA512
-)
-
 // Client represents a client
 type Client struct {
-	channelQuit chan bool
-	logger      xlog.Logger
-	peerPool    *astichat.PeerPool
-	privateKey  *rsa.PrivateKey
-	publicKey   astichat.PublicKey
-	serverAddr  *net.UDPAddr
-	server      *astiudp.Server
-	startedAt   time.Time
-	version     string
+	channelQuit     chan bool
+	logger          xlog.Logger
+	peerPool        *astichat.PeerPool
+	privateKey      *astichat.PrivateKey
+	server          *astiudp.Server
+	serverAddr      *net.UDPAddr
+	serverPublicKey *astichat.PublicKey
+	startedAt       time.Time
+	version         string
 }
 
 // NewClient returns a new client
@@ -78,55 +63,23 @@ func (cl *Client) Init(c Configuration) (err error) {
 		return
 	}
 
-	// Retrieve pem data
-	var pemData []byte
-	if len(c.PEMPath) > 0 {
-		if pemData, err = ioutil.ReadFile(c.PEMPath); err != nil {
-			return
-		}
-	} else {
-		if pemData, err = base64.StdEncoding.DecodeString(PrivateKey); err != nil {
-			return
-		}
-	}
-
-	// Decode pem
-	var block *pem.Block
-	if block, _ = pem.Decode(pemData); block == nil {
-		err = fmt.Errorf("No block found in pem %s", string(pemData))
-		return
-	}
-
 	// Get passphrase
 	fmt.Println("Enter your passphrase:")
 	var b []byte
 	if b, err = terminal.ReadPassword(int(syscall.Stdin)); err != nil {
 		return
 	}
-	var passphrase = string(bytes.TrimSpace(b))
+	cl.privateKey.SetPassphrase(string(bytes.TrimSpace(b)))
 
-	// Decrypt block
-	b = block.Bytes
-	if len(passphrase) > 0 {
-		if b, err = x509.DecryptPEMBlock(block, []byte(passphrase)); err != nil {
-			err = fmt.Errorf("Invalid passphrase: %s", err)
-			return
-		}
-	}
-
-	// Parse private key
-	if cl.privateKey, err = x509.ParsePKCS1PrivateKey(b); err != nil {
+	// Unmarshal client's private key
+	if err = cl.privateKey.UnmarshalText([]byte(ClientPrivateKey)); err != nil {
 		return
 	}
 
-	// Parse public key
-	var pub *rsa.PublicKey
-	var ok bool
-	if pub, ok = cl.privateKey.Public().(*rsa.PublicKey); !ok {
-		err = errors.New("Public key is not *rsa.PublicKey")
+	// Unmarshal server's public key
+	if err = cl.serverPublicKey.UnmarshalText([]byte(ServerPublicKey)); err != nil {
 		return
 	}
-	cl.publicKey = astichat.NewPublicKeyFromRSAPublicKey(pub)
 
 	// Init Typing
 	go cl.Type()
@@ -170,9 +123,21 @@ func (c *Client) Wait() {
 // HandleStart handles the start event
 func (c *Client) HandleStart() astiudp.ListenerFunc {
 	return func(s *astiudp.Server, eventName string, payload json.RawMessage, addr *net.UDPAddr) (err error) {
+		// Encrypt message
+		var m astichat.EncryptedMessage
+		if m, err = astichat.NewEncryptedMessage(astichat.MessageRegister, c.serverPublicKey, c.privateKey); err != nil {
+			return
+		}
+
+		// Retrieve public key
+		var pub *astichat.PublicKey
+		if pub, err = c.privateKey.PublicKey(); err != nil {
+			return
+		}
+
 		// Write
 		c.logger.Debugf("Sending peer.register to %s", c.serverAddr)
-		if err = s.Write(astichat.EventNamePeerRegister, astichat.Body{PublicKey: c.publicKey}, c.serverAddr); err != nil {
+		if err = s.Write(astichat.EventNamePeerRegister, astichat.Body{EncryptedMessage: m, PublicKey: pub}, c.serverAddr); err != nil {
 			return
 		}
 		return
@@ -180,22 +145,50 @@ func (c *Client) HandleStart() astiudp.ListenerFunc {
 }
 
 // Disconnect disconnects from the server
-func (c *Client) Disconnect() error {
+func (c *Client) Disconnect() (err error) {
+	// Encrypt message
+	var m astichat.EncryptedMessage
+	if m, err = astichat.NewEncryptedMessage(astichat.MessageDisconnect, c.serverPublicKey, c.privateKey); err != nil {
+		return
+	}
+
+	// Retrieve public key
+	var pub *astichat.PublicKey
+	if pub, err = c.privateKey.PublicKey(); err != nil {
+		return
+	}
+
+	// Write
 	c.logger.Debugf("Sending peer.disconnect to %s", c.serverAddr)
-	return c.server.Write(astichat.EventNamePeerDisconnect, astichat.Body{PublicKey: c.publicKey}, c.serverAddr)
+	if err = c.server.Write(astichat.EventNamePeerDisconnect, astichat.Body{EncryptedMessage: m, PublicKey: pub}, c.serverAddr); err != nil {
+		return
+	}
+	return
 }
 
 // HandlePeerDisconnected handles the peer.disconnected event
 func (c *Client) HandlePeerDisconnected() astiudp.ListenerFunc {
 	return func(s *astiudp.Server, eventName string, payload json.RawMessage, addr *net.UDPAddr) (err error) {
 		// Unmarshal
+		var body astichat.Body
+		if err = json.Unmarshal(payload, &body); err != nil {
+			return
+		}
+
+		// Decrypt message
+		var b []byte
+		if b, err = body.EncryptedMessage.Decrypt(c.serverPublicKey, c.privateKey); err != nil {
+			return
+		}
+
+		// Unmarshal
 		var p *astichat.Peer
-		if err = json.Unmarshal(payload, &p); err != nil {
+		if err = json.Unmarshal(b, &p); err != nil {
 			return
 		}
 
 		// Delete peer from pool
-		c.peerPool.Del(p.PublicKey)
+		c.peerPool.Del(p.ClientPublicKey)
 
 		// Print
 		fmt.Fprintf(os.Stdout, "%s has left\n", p)
@@ -207,8 +200,20 @@ func (c *Client) HandlePeerDisconnected() astiudp.ListenerFunc {
 func (c *Client) HandlePeerRegistered() astiudp.ListenerFunc {
 	return func(s *astiudp.Server, eventName string, payload json.RawMessage, addr *net.UDPAddr) (err error) {
 		// Unmarshal
+		var body astichat.Body
+		if err = json.Unmarshal(payload, &body); err != nil {
+			return
+		}
+
+		// Decrypt message
+		var b []byte
+		if b, err = body.EncryptedMessage.Decrypt(c.serverPublicKey, c.privateKey); err != nil {
+			return
+		}
+
+		// Unmarshal
 		var ps []*astichat.Peer
-		if err = json.Unmarshal(payload, &ps); err != nil {
+		if err = json.Unmarshal(b, &ps); err != nil {
 			return
 		}
 
@@ -231,8 +236,20 @@ func (c *Client) HandlePeerRegistered() astiudp.ListenerFunc {
 func (c *Client) HandlePeerJoined() astiudp.ListenerFunc {
 	return func(s *astiudp.Server, eventName string, payload json.RawMessage, addr *net.UDPAddr) (err error) {
 		// Unmarshal
+		var body astichat.Body
+		if err = json.Unmarshal(payload, &body); err != nil {
+			return
+		}
+
+		// Decrypt message
+		var b []byte
+		if b, err = body.EncryptedMessage.Decrypt(c.serverPublicKey, c.privateKey); err != nil {
+			return
+		}
+
+		// Unmarshal
 		var p *astichat.Peer
-		if err = json.Unmarshal(payload, &p); err != nil {
+		if err = json.Unmarshal(b, &p); err != nil {
 			return
 		}
 
@@ -252,19 +269,25 @@ func (c *Client) Type() {
 	for s.Scan() {
 		// Execute the rest in a goroutine
 		go func(line []byte) {
+			// Retrieve public key
+			var pub *astichat.PublicKey
+			var err error
+			if pub, err = c.privateKey.PublicKey(); err != nil {
+				return
+			}
+
 			// Loop through peers
 			for _, p := range c.peerPool.Peers() {
 				// Encrypt message
-				var message, hash, signature []byte
-				var err error
-				if message, hash, signature, err = c.encryptMessage(line, p.PublicKey.Key()); err != nil {
+				var m astichat.EncryptedMessage
+				if m, err = astichat.NewEncryptedMessage(line, p.ClientPublicKey, c.privateKey); err != nil {
 					c.logger.Errorf("%s while encrypting message %s to %s")
 					continue
 				}
 
 				// Write message
 				c.logger.Debugf("Sending peer.typed to %s", p)
-				if err = c.server.Write(astichat.EventNamePeerTyped, astichat.BodyTyped{Body: astichat.Body{PublicKey: c.publicKey}, Hash: hash, Message: message, Signature: signature}, p.Addr); err != nil {
+				if err = c.server.Write(astichat.EventNamePeerTyped, astichat.Body{EncryptedMessage: m, PublicKey: pub}, p.Addr); err != nil {
 					c.logger.Errorf("%s while sending peer.typed to %s", p)
 					continue
 				}
@@ -273,44 +296,11 @@ func (c *Client) Type() {
 	}
 }
 
-// encryptMessage encrypts a message
-func (c *Client) encryptMessage(i []byte, pub *rsa.PublicKey) (o, hash, signature []byte, err error) {
-	// Encrypt message with public key
-	if o, err = rsa.EncryptOAEP(pubHash, rand.Reader, pub, i, nil); err != nil {
-		return
-	}
-
-	// Sign message with private key
-	var pssh = prvHash.New()
-	if _, err = pssh.Write(i); err != nil {
-		return
-	}
-	hash = pssh.Sum(nil)
-	if signature, err = rsa.SignPSS(rand.Reader, c.privateKey, prvHash, hash, nil); err != nil {
-		return
-	}
-	return
-}
-
-// decryptMessage decrypts a message
-func (c *Client) decryptMessage(i, hash, signature []byte, pub *rsa.PublicKey) (o []byte, err error) {
-	// Decrypt message with private key
-	if o, err = rsa.DecryptOAEP(pubHash, rand.Reader, c.privateKey, i, nil); err != nil {
-		return
-	}
-
-	// Check signature with public key
-	if err = rsa.VerifyPSS(pub, prvHash, hash, signature, nil); err != nil {
-		return
-	}
-	return
-}
-
 // HandlePeerDisconnected handles the peer.disconnected event
 func (c *Client) HandlePeerTyped() astiudp.ListenerFunc {
 	return func(s *astiudp.Server, eventName string, payload json.RawMessage, addr *net.UDPAddr) (err error) {
 		// Unmarshal
-		var b *astichat.BodyTyped
+		var b *astichat.Body
 		if err = json.Unmarshal(payload, &b); err != nil {
 			return
 		}
@@ -319,7 +309,7 @@ func (c *Client) HandlePeerTyped() astiudp.ListenerFunc {
 		if p, ok := c.peerPool.Get(b.PublicKey); ok {
 			// Decrypt message
 			var m []byte
-			if m, err = c.decryptMessage(b.Message, b.Hash, b.Signature, p.PublicKey.Key()); err != nil {
+			if m, err = b.EncryptedMessage.Decrypt(p.ClientPublicKey, c.privateKey); err != nil {
 				return
 			}
 

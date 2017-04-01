@@ -17,14 +17,14 @@ func NewPeerPool() *PeerPool {
 }
 
 // Del deletes a peer from the pool
-func (pp *PeerPool) Del(publicKey PublicKey) {
+func (pp *PeerPool) Del(publicKey *PublicKey) {
 	pp.mutex.Lock()
 	defer pp.mutex.Unlock()
 	delete(pp.pool, publicKey.String())
 }
 
 // Get gets a peer from the pool
-func (pp *PeerPool) Get(publicKey PublicKey) (p *Peer, ok bool) {
+func (pp *PeerPool) Get(publicKey *PublicKey) (p *Peer, ok bool) {
 	pp.mutex.Lock()
 	defer pp.mutex.Unlock()
 	p, ok = pp.pool[publicKey.String()]
@@ -45,5 +45,5 @@ func (pp *PeerPool) Peers() (o []*Peer) {
 func (pp *PeerPool) Set(p *Peer) {
 	pp.mutex.Lock()
 	defer pp.mutex.Unlock()
-	pp.pool[p.PublicKey.String()] = p
+	pp.pool[p.ClientPublicKey.String()] = p
 }
