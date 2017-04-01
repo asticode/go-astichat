@@ -48,3 +48,8 @@ func (s *StorageMongo) ChattererFetchByUsername(username string) (c Chatterer, e
 	}
 	return
 }
+
+// ChattererUpdate updates a chatterer
+func (s *StorageMongo) ChattererUpdate(c Chatterer) error {
+	return s.mongo.DB(databaseName).C(collectionNameChatterer).UpdateId(c.ID, c)
+}

@@ -9,10 +9,13 @@ import (
 	"strconv"
 	"text/template"
 
+	"time"
+
 	"github.com/asticode/go-astichat/astichat"
 	"github.com/asticode/go-astichat/builder"
 	"github.com/asticode/go-astitools/template"
 	"github.com/julienschmidt/httprouter"
+	"github.com/rs/xid"
 	"github.com/rs/xlog"
 )
 
@@ -61,7 +64,8 @@ func (s *ServerHTTP) ListenAndServe() {
 
 	// Website
 	r.GET("/", HandleHomepageGET)
-	r.POST("/download/client", HandleDownloadClientGET)
+	r.POST("/download/client", HandleDownloadClientPOST)
+	r.POST("/token", HandleTokenPOST)
 
 	// Static files
 	r.ServeFiles("/static/*filepath", http.Dir(s.pathStatic))
@@ -153,17 +157,17 @@ func HandleHomepageGET(rw http.ResponseWriter, r *http.Request, p httprouter.Par
 	}
 }
 
-// HandleDownloadClientGET returns the download client handler
+// HandleDownloadClientPOST returns the download client handler
 // TODO Regenerate private key on upgrade. To make sure upgrade demand comes from the right place, client must
 // ask for a token generated server-side (and stored in the storage with a timestamp), and on upgrade the server
 // checks the encrypted message contains the correct token and validate the timestamp as well
-func HandleDownloadClientGET(rw http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func HandleDownloadClientPOST(rw http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	// Init
 	var bd = BuilderFromContext(r.Context())
 	var l = LoggerFromContext(r.Context())
 	var s = StorageFromContext(r.Context())
 
-	// Username is not empty
+	// Username is empty
 	var username = r.FormValue("username")
 	if len(username) == 0 {
 		l.Error("Empty username")
@@ -281,4 +285,59 @@ func HandleDownloadClientGET(rw http.ResponseWriter, r *http.Request, p httprout
 	rw.Write(b)
 
 	// TODO Find a way to redirect as well
+}
+
+// GenerateToken allows testing functions using it
+var GenerateToken = func() string {
+	return xid.New().String()
+}
+
+// Now allows testing functions using it
+var Now = func() time.Time {
+	return time.Now()
+}
+
+// HandleTokenPOST delivers a token for a specific username that can be used during a short period of time to interact
+// with the server. If the username doesn't exist, a token is still generated to avoid allowing recreating the list of
+// usernames with a simple script.
+func HandleTokenPOST(rw http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	// Init
+	var l = LoggerFromContext(r.Context())
+	var s = StorageFromContext(r.Context())
+
+	// Username is empty
+	var username = r.FormValue("username")
+	if len(username) == 0 {
+		l.Error("Empty username")
+		rw.WriteHeader(http.StatusBadRequest)
+		rw.Write([]byte("Please enter a username"))
+		return
+	}
+
+	// Fetch chatterer
+	var c astichat.Chatterer
+	var err error
+	if c, err = s.ChattererFetchByUsername(username); err != nil && err != astichat.ErrNotFoundInStorage {
+		l.Errorf("%s while fetching chatterer by username %s", err, username)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Generate token
+	c.Token = GenerateToken()
+	c.TokenAt = Now()
+
+	// Return token even though username doesn't exist
+	if err != nil {
+		l.Errorf("Username %s doesn't exist", username)
+		rw.Write([]byte(c.Token))
+		return
+	}
+
+	// Store token
+	if err = s.ChattererUpdate(c); err != nil {
+		l.Errorf("%s while updating chatterer %s", err, c.ID.Hex())
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
