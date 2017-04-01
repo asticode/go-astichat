@@ -14,6 +14,7 @@ var (
 	ClientPrivateKey string
 	ServerAddr       string
 	ServerPublicKey  string
+	Username         string
 	Version          string
 )
 
@@ -37,9 +38,11 @@ func main() {
 	cl.HandleSignals()
 
 	// Switch on subcommand
-	// TODO Print upgrade token which contains date
+	// TODO Print upgrade encrypted token
 	var err error
 	switch s {
+	case "username":
+		fmt.Fprintln(os.Stdout, cl.username)
 	case "version":
 		fmt.Fprintln(os.Stdout, cl.version)
 	default:

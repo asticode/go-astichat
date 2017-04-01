@@ -19,5 +19,5 @@ var (
 // Body represents the base body
 type Body struct {
 	EncryptedMessage
-	PublicKey *PublicKey `json:"public_key,omitempty"` // This is the identifier of the whole project
+	Username string `json:"username,omitempty"`
 }

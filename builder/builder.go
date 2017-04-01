@@ -39,7 +39,7 @@ func New(c Configuration) *Builder {
 }
 
 // Build builds the client
-func (b *Builder) Build(os string, prvClient *astichat.PrivateKey, pubServer *astichat.PublicKey) (o string, err error) {
+func (b *Builder) Build(os, username string, prvClient *astichat.PrivateKey, pubServer *astichat.PublicKey) (o string, err error) {
 	// Retrieve git version
 	var v []byte
 	if v, err = b.gitVersion(); err != nil {
@@ -66,6 +66,7 @@ func (b *Builder) Build(os string, prvClient *astichat.PrivateKey, pubServer *as
 		"-X main.ClientPrivateKey=" + string(prvClientBytes),
 		"-X main.Server=" + b.serverAddr,
 		"-X main.ServerPublicKey=" + string(pubServerBytes),
+		"-X main.Username=" + username,
 		"-X main.Version=" + string(v),
 	}
 

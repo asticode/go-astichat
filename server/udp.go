@@ -66,16 +66,16 @@ func (s *ServerUDP) HandlePeerRegister() astiudp.ListenerFunc {
 			return
 		}
 
-		// Retrieve chatterer
-		var c astichat.Chatterer
-		if c, err = s.storage.ChattererFetchByPublicKey(body.PublicKey); err != nil {
-			return
-		}
-
 		// Peer is new to the pool
 		var p *astichat.Peer
 		var ok bool
-		if p, ok = s.peerPool.Get(c.ClientPublicKey); !ok {
+		if p, ok = s.peerPool.Get(body.Username); !ok {
+			// Retrieve chatterer
+			var c astichat.Chatterer
+			if c, err = s.storage.ChattererFetchByUsername(body.Username); err != nil {
+				return
+			}
+
 			// Decrypt message
 			var b []byte
 			if b, err = body.EncryptedMessage.Decrypt(c.ClientPublicKey, c.ServerPrivateKey); err != nil {
@@ -133,7 +133,7 @@ func (s *ServerUDP) HandlePeerDisconnect() astiudp.ListenerFunc {
 		}
 
 		// Peer is in the pool
-		if p, ok := s.peerPool.Get(body.PublicKey); ok {
+		if p, ok := s.peerPool.Get(body.Username); ok {
 			// Decrypt message
 			var b []byte
 			if b, err = body.EncryptedMessage.Decrypt(p.ClientPublicKey, p.ServerPrivateKey); err != nil {
@@ -147,7 +147,7 @@ func (s *ServerUDP) HandlePeerDisconnect() astiudp.ListenerFunc {
 			}
 
 			// Delete from the pool
-			s.peerPool.Del(p.ClientPublicKey)
+			s.peerPool.Del(p.Username)
 
 			// Log
 			s.logger.Infof("%s has left us", p)

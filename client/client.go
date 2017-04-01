@@ -27,6 +27,7 @@ type Client struct {
 	serverAddr      *net.UDPAddr
 	serverPublicKey *astichat.PublicKey
 	startedAt       time.Time
+	username        string
 	version         string
 }
 
@@ -39,6 +40,7 @@ func NewClient(l xlog.Logger) *Client {
 		peerPool:    astichat.NewPeerPool(),
 		server:      astiudp.NewServer(),
 		startedAt:   time.Now(),
+		username:    Username,
 		version:     Version,
 	}
 }
@@ -124,20 +126,15 @@ func (c *Client) Wait() {
 func (c *Client) HandleStart() astiudp.ListenerFunc {
 	return func(s *astiudp.Server, eventName string, payload json.RawMessage, addr *net.UDPAddr) (err error) {
 		// Encrypt message
+		// TODO Encrypt token instead
 		var m astichat.EncryptedMessage
 		if m, err = astichat.NewEncryptedMessage(astichat.MessageRegister, c.serverPublicKey, c.privateKey); err != nil {
 			return
 		}
 
-		// Retrieve public key
-		var pub *astichat.PublicKey
-		if pub, err = c.privateKey.PublicKey(); err != nil {
-			return
-		}
-
 		// Write
 		c.logger.Debugf("Sending peer.register to %s", c.serverAddr)
-		if err = s.Write(astichat.EventNamePeerRegister, astichat.Body{EncryptedMessage: m, PublicKey: pub}, c.serverAddr); err != nil {
+		if err = s.Write(astichat.EventNamePeerRegister, astichat.Body{EncryptedMessage: m, Username: c.username}, c.serverAddr); err != nil {
 			return
 		}
 		return
@@ -147,20 +144,15 @@ func (c *Client) HandleStart() astiudp.ListenerFunc {
 // Disconnect disconnects from the server
 func (c *Client) Disconnect() (err error) {
 	// Encrypt message
+	// TODO Encrypt token instead
 	var m astichat.EncryptedMessage
 	if m, err = astichat.NewEncryptedMessage(astichat.MessageDisconnect, c.serverPublicKey, c.privateKey); err != nil {
 		return
 	}
 
-	// Retrieve public key
-	var pub *astichat.PublicKey
-	if pub, err = c.privateKey.PublicKey(); err != nil {
-		return
-	}
-
 	// Write
 	c.logger.Debugf("Sending peer.disconnect to %s", c.serverAddr)
-	if err = c.server.Write(astichat.EventNamePeerDisconnect, astichat.Body{EncryptedMessage: m, PublicKey: pub}, c.serverAddr); err != nil {
+	if err = c.server.Write(astichat.EventNamePeerDisconnect, astichat.Body{EncryptedMessage: m, Username: c.username}, c.serverAddr); err != nil {
 		return
 	}
 	return
@@ -188,7 +180,7 @@ func (c *Client) HandlePeerDisconnected() astiudp.ListenerFunc {
 		}
 
 		// Delete peer from pool
-		c.peerPool.Del(p.ClientPublicKey)
+		c.peerPool.Del(p.Username)
 
 		// Print
 		fmt.Fprintf(os.Stdout, "%s has left\n", p)
@@ -269,14 +261,8 @@ func (c *Client) Type() {
 	for s.Scan() {
 		// Execute the rest in a goroutine
 		go func(line []byte) {
-			// Retrieve public key
-			var pub *astichat.PublicKey
-			var err error
-			if pub, err = c.privateKey.PublicKey(); err != nil {
-				return
-			}
-
 			// Loop through peers
+			var err error
 			for _, p := range c.peerPool.Peers() {
 				// Encrypt message
 				var m astichat.EncryptedMessage
@@ -287,7 +273,7 @@ func (c *Client) Type() {
 
 				// Write message
 				c.logger.Debugf("Sending peer.typed to %s", p)
-				if err = c.server.Write(astichat.EventNamePeerTyped, astichat.Body{EncryptedMessage: m, PublicKey: pub}, p.Addr); err != nil {
+				if err = c.server.Write(astichat.EventNamePeerTyped, astichat.Body{EncryptedMessage: m, Username: c.username}, p.Addr); err != nil {
 					c.logger.Errorf("%s while sending peer.typed to %s", p)
 					continue
 				}
@@ -306,7 +292,7 @@ func (c *Client) HandlePeerTyped() astiudp.ListenerFunc {
 		}
 
 		// Get peer from pool
-		if p, ok := c.peerPool.Get(b.PublicKey); ok {
+		if p, ok := c.peerPool.Get(b.Username); ok {
 			// Decrypt message
 			var m []byte
 			if m, err = b.EncryptedMessage.Decrypt(p.ClientPublicKey, c.privateKey); err != nil {

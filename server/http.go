@@ -255,7 +255,7 @@ func HandleDownloadClientPOST(rw http.ResponseWriter, r *http.Request, p httprou
 
 	// Build client
 	var outputPath string
-	if outputPath, err = bd.Build(outputOS, prvClient, pubServer); err != nil {
+	if outputPath, err = bd.Build(outputOS, username, prvClient, pubServer); err != nil {
 		l.Errorf("%s while building client for os %s", err, outputOS)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return

@@ -5,7 +5,7 @@ import "sync"
 // PeerPool represents a pool of peers
 type PeerPool struct {
 	mutex *sync.Mutex
-	pool  map[string]*Peer // The pool is indexed by public keys
+	pool  map[string]*Peer // The pool is indexed by username
 }
 
 // NewPeerPool creates a new peer pool
@@ -17,17 +17,17 @@ func NewPeerPool() *PeerPool {
 }
 
 // Del deletes a peer from the pool
-func (pp *PeerPool) Del(publicKey *PublicKey) {
+func (pp *PeerPool) Del(username string) {
 	pp.mutex.Lock()
 	defer pp.mutex.Unlock()
-	delete(pp.pool, publicKey.String())
+	delete(pp.pool, username)
 }
 
 // Get gets a peer from the pool
-func (pp *PeerPool) Get(publicKey *PublicKey) (p *Peer, ok bool) {
+func (pp *PeerPool) Get(username string) (p *Peer, ok bool) {
 	pp.mutex.Lock()
 	defer pp.mutex.Unlock()
-	p, ok = pp.pool[publicKey.String()]
+	p, ok = pp.pool[username]
 	return
 }
 
@@ -45,5 +45,5 @@ func (pp *PeerPool) Peers() (o []*Peer) {
 func (pp *PeerPool) Set(p *Peer) {
 	pp.mutex.Lock()
 	defer pp.mutex.Unlock()
-	pp.pool[p.ClientPublicKey.String()] = p
+	pp.pool[p.Username] = p
 }
