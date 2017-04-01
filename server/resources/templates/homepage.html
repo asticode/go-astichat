@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Astichat - an encrypted peer-to-peer chat</title>
+    <title>Astichat - a lightweight encrypted chat</title>
 
     <!-- jQuery -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
@@ -16,54 +16,42 @@
 <body>
 
 <!-- Title -->
-<div class="wrapper">
+<div class="wrapper wrapper-large">
     <h1>Astichat</h1>
-    <h2>an encrypted peer-to-peer chat</h2>
+    <h2></h2>
 </div>
 
 <!-- Link -->
-<div class="wrapper light">
+<div class="wrapper wrapper-small light">
     This project is open-source. Check it out on <a href="https://github.com/asticode/go-astichat" target="_blank">github.com</a> and contribute!
 </div>
 
 <!-- Content -->
 <div class="wrapper no-padding">
-    <table><tbody><tr>
+    <h3>Download the client</h3>
 
-        <!-- Client -->
-        <td>
-            <h3>Download the client</h3>
+    <form action="/download/client" method="POST">
+        <input placeholder="Your username" type="text" name="username"/>
+        <div class="checkbox">
+            <input type="checkbox" id="has_token">
+            I have a token
+        </div>
+        <div id="with_token" class="hidden">
+            <textarea placeholder="Paste your token here" name="token"></textarea>
+        </div>
+        <div id="without_token">
+            <input placeholder="Your password" type="password" name="password"/>
+            <select name="os">
+                <option value="linux">Linux</option>
+                <option value="macosx">MAC OSX</option>
+                <option value="windows">Windows</option>
+                <option value="windows32">Windows 32 bits</option>
+            </select>
+        </div>
+        <button class="btn-full btn-success">Download*</button>
+    </form>
 
-            <form action="/download/client" method="POST">
-                <input placeholder="Your username" type="text" name="username"/>
-                <input placeholder="Your password" type="password" name="password"/>
-                <select name="os">
-                    <option value="linux">Linux</option>
-                    <option value="macosx">MAC OSX</option>
-                    <option value="windows">Windows</option>
-                    <option value="windows32">Windows 32 bits</option>
-                </select>
-                <!--
-                <div class="checkbox">
-                    <input type="checkbox" id="has_public_key">
-                    I already have a public key
-                </div>
-                <textarea placeholder="Paste your public key here" class="hidden" id="public_key" name="public_key"></textarea>
-                -->
-                <button class="btn-full btn-success">Download*</button>
-            </form>
-
-            <div>* we only store the mapping between your public key and your username</div>
-        </td>
-
-        <!-- Server -->
-        <td>
-            <h3>Set up the server</h3>
-
-            <div>Check out the <a href="https://github.com/asticode/go-astichat/wiki/Set-up-the-server" target="_blank">documentation</a></div>
-        </td>
-
-    </tr></tbody></table>
+    <div>* we only store the mapping between your public key and your username</div>
 </div>
 
 <!-- Script -->

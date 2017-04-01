@@ -24,6 +24,14 @@ a, a:visited {
     width: 100%;
 }
 
+.wrapper-large {
+    padding: 5em;
+}
+
+.wrapper-small {
+    padding: 2em;
+}
+
 h1 {
     font-size: 5em;
     margin: 0;
@@ -41,22 +49,6 @@ h2 {
 
 .wrapper.no-padding {
     padding: 0;
-}
-
-table, tbody, tr {
-    border: none;
-    padding: 0;
-    margin: 0;
-    vertical-align: top;
-    width: 100%;
-}
-
-td {
-    border: none;
-    margin: 0;
-    padding: 20px;
-    text-align: center;
-    width: 50%;
 }
 
 h3 {
