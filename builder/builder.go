@@ -26,7 +26,8 @@ const (
 type Builder struct {
 	Logger               xlog.Logger
 	pathWorkingDirectory string
-	serverAddr           string
+	serverHTTPAddr       string
+	serverUDPAddr        string
 }
 
 // New returns a new builder
@@ -34,7 +35,8 @@ func New(c Configuration) *Builder {
 	return &Builder{
 		Logger:               xlog.NopLogger,
 		pathWorkingDirectory: c.PathWorkingDirectory,
-		serverAddr:           c.ServerAddr,
+		serverHTTPAddr:       c.ServerHTTPAddr,
+		serverUDPAddr:        c.ServerUDPAddr,
 	}
 }
 
@@ -74,8 +76,9 @@ func (b *Builder) Build(os, username string, prvClient *astichat.PrivateKey, pub
 	// Init ldflags
 	var ldflags = []string{
 		"-X main.ClientPrivateKey=" + string(prvClientBytes),
-		"-X main.Server=" + b.serverAddr,
+		"-X main.ServerHTTPAddr=" + b.serverHTTPAddr,
 		"-X main.ServerPublicKey=" + string(pubServerBytes),
+		"-X main.ServerUDPAddr=" + b.serverUDPAddr,
 		"-X main.Username=" + username,
 		"-X main.Version=" + string(v),
 	}

@@ -24,8 +24,9 @@ type Client struct {
 	peerPool        *astichat.PeerPool
 	privateKey      *astichat.PrivateKey
 	server          *astiudp.Server
-	serverAddr      *net.UDPAddr
+	serverHTTPAddr  string
 	serverPublicKey *astichat.PublicKey
+	serverUDPAddr   *net.UDPAddr
 	startedAt       time.Time
 	username        string
 	version         string
@@ -61,7 +62,8 @@ func (cl *Client) Init(c Configuration) (err error) {
 	cl.server.SetListener(astichat.EventNamePeerTyped, cl.HandlePeerTyped())
 
 	// Resolve server addr
-	if cl.serverAddr, err = net.ResolveUDPAddr("udp4", c.ServerAddr); err != nil {
+	cl.serverHTTPAddr = c.ServerHTTPAddr
+	if cl.serverUDPAddr, err = net.ResolveUDPAddr("udp4", c.ServerUDPAddr); err != nil {
 		return
 	}
 
@@ -133,8 +135,8 @@ func (c *Client) HandleStart() astiudp.ListenerFunc {
 		}
 
 		// Write
-		c.logger.Debugf("Sending peer.register to %s", c.serverAddr)
-		if err = s.Write(astichat.EventNamePeerRegister, astichat.Body{EncryptedMessage: m, Username: c.username}, c.serverAddr); err != nil {
+		c.logger.Debugf("Sending peer.register to %s", c.serverUDPAddr)
+		if err = s.Write(astichat.EventNamePeerRegister, astichat.Body{EncryptedMessage: m, Username: c.username}, c.serverUDPAddr); err != nil {
 			return
 		}
 		return
@@ -151,8 +153,8 @@ func (c *Client) Disconnect() (err error) {
 	}
 
 	// Write
-	c.logger.Debugf("Sending peer.disconnect to %s", c.serverAddr)
-	if err = c.server.Write(astichat.EventNamePeerDisconnect, astichat.Body{EncryptedMessage: m, Username: c.username}, c.serverAddr); err != nil {
+	c.logger.Debugf("Sending peer.disconnect to %s", c.serverUDPAddr)
+	if err = c.server.Write(astichat.EventNamePeerDisconnect, astichat.Body{EncryptedMessage: m, Username: c.username}, c.serverUDPAddr); err != nil {
 		return
 	}
 	return

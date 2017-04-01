@@ -12,8 +12,9 @@ import (
 // LDFlags
 var (
 	ClientPrivateKey string
-	ServerAddr       string
+	ServerHTTPAddr   string
 	ServerPublicKey  string
+	ServerUDPAddr    string
 	Username         string
 	Version          string
 )

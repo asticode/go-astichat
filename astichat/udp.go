@@ -5,9 +5,10 @@ const (
 	EventNamePeerDisconnect   = "peer.disconnect"
 	EventNamePeerDisconnected = "peer.disconnected"
 	EventNamePeerJoined       = "peer.joined"
-	EventNamePeerRegister     = "peer.register"
-	EventNamePeerRegistered   = "peer.registered"
-	EventNamePeerTyped        = "peer.typed"
+	// TODO Rename register into connect
+	EventNamePeerRegister   = "peer.register"
+	EventNamePeerRegistered = "peer.registered"
+	EventNamePeerTyped      = "peer.typed"
 )
 
 // Vars

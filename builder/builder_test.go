@@ -20,7 +20,7 @@ var (
 
 func TestBuilder(t *testing.T) {
 	// Init
-	var b = builder.New(builder.Configuration{PathWorkingDirectory: "/working/directory/path", ServerAddr: "server_addr"})
+	var b = builder.New(builder.Configuration{PathWorkingDirectory: "/working/directory/path", ServerHTTPAddr: "server_http_addr", ServerUDPAddr: "server_udp_addr"})
 	var prv = astichat.PrivateKey{}
 	prv.SetPassphrase("")
 	var err = prv.UnmarshalText([]byte(prvString))
@@ -44,22 +44,22 @@ func TestBuilder(t *testing.T) {
 
 	// Linux
 	_, err = b.Build(builder.OSLinux, "bob", &prv, pub)
-	assert.Equal(t, []string{"git --git-dir /go/path/src/github.com/asticode/go-astichat/.git rev-parse HEAD", "go build -o /working/directory/path/random_id -ldflags -X main.ClientPrivateKey=" + prvString + " -X main.Server=server_addr -X main.ServerPublicKey=" + pubString + " -X main.Username=bob -X main.Version=version github.com/asticode/go-astichat/client GOPATH=/go/path PATH=/path GOOS=linux GOARCH=amd64"}, cmds)
+	assert.Equal(t, []string{"git --git-dir /go/path/src/github.com/asticode/go-astichat/.git rev-parse HEAD", "go build -o /working/directory/path/random_id -ldflags -X main.ClientPrivateKey=" + prvString + " -X main.ServerHTTPAddr=server_http_addr -X main.ServerPublicKey=" + pubString + " -X main.ServerUDPAddr=server_udp_addr -X main.Username=bob -X main.Version=version github.com/asticode/go-astichat/client GOPATH=/go/path PATH=/path GOOS=linux GOARCH=amd64"}, cmds)
 
 	// MacOSx
 	cmds = []string{}
 	_, err = b.Build(builder.OSMaxOSX, "bob", &prv, pub)
-	assert.Equal(t, []string{"git --git-dir /go/path/src/github.com/asticode/go-astichat/.git rev-parse HEAD", "go build -o /working/directory/path/random_id -ldflags -X main.ClientPrivateKey=" + prvString + " -X main.Server=server_addr -X main.ServerPublicKey=" + pubString + " -X main.Username=bob -X main.Version=version github.com/asticode/go-astichat/client GOPATH=/go/path PATH=/path GOOS=darwin GOARCH=amd64"}, cmds)
+	assert.Equal(t, []string{"git --git-dir /go/path/src/github.com/asticode/go-astichat/.git rev-parse HEAD", "go build -o /working/directory/path/random_id -ldflags -X main.ClientPrivateKey=" + prvString + " -X main.ServerHTTPAddr=server_http_addr -X main.ServerPublicKey=" + pubString + " -X main.ServerUDPAddr=server_udp_addr -X main.Username=bob -X main.Version=version github.com/asticode/go-astichat/client GOPATH=/go/path PATH=/path GOOS=darwin GOARCH=amd64"}, cmds)
 
 	// Windows
 	cmds = []string{}
 	_, err = b.Build(builder.OSWindows, "bob", &prv, pub)
-	assert.Equal(t, []string{"git --git-dir /go/path/src/github.com/asticode/go-astichat/.git rev-parse HEAD", "go build -o /working/directory/path/random_id -ldflags -X main.ClientPrivateKey=" + prvString + " -X main.Server=server_addr -X main.ServerPublicKey=" + pubString + " -X main.Username=bob -X main.Version=version github.com/asticode/go-astichat/client GOPATH=/go/path PATH=/path GOOS=windows GOARCH=amd64"}, cmds)
+	assert.Equal(t, []string{"git --git-dir /go/path/src/github.com/asticode/go-astichat/.git rev-parse HEAD", "go build -o /working/directory/path/random_id -ldflags -X main.ClientPrivateKey=" + prvString + " -X main.ServerHTTPAddr=server_http_addr -X main.ServerPublicKey=" + pubString + " -X main.ServerUDPAddr=server_udp_addr -X main.Username=bob -X main.Version=version github.com/asticode/go-astichat/client GOPATH=/go/path PATH=/path GOOS=windows GOARCH=amd64"}, cmds)
 
 	// Windows 32bits
 	cmds = []string{}
 	_, err = b.Build(builder.OSWindows32, "bob", &prv, pub)
-	assert.Equal(t, []string{"git --git-dir /go/path/src/github.com/asticode/go-astichat/.git rev-parse HEAD", "go build -o /working/directory/path/random_id -ldflags -X main.ClientPrivateKey=" + prvString + " -X main.Server=server_addr -X main.ServerPublicKey=" + pubString + " -X main.Username=bob -X main.Version=version github.com/asticode/go-astichat/client GOPATH=/go/path PATH=/path GOOS=windows GOARCH=386"}, cmds)
+	assert.Equal(t, []string{"git --git-dir /go/path/src/github.com/asticode/go-astichat/.git rev-parse HEAD", "go build -o /working/directory/path/random_id -ldflags -X main.ClientPrivateKey=" + prvString + " -X main.ServerHTTPAddr=server_http_addr -X main.ServerPublicKey=" + pubString + " -X main.ServerUDPAddr=server_udp_addr -X main.Username=bob -X main.Version=version github.com/asticode/go-astichat/client GOPATH=/go/path PATH=/path GOOS=windows GOARCH=386"}, cmds)
 }
 
 func TestIsValidOS(t *testing.T) {
