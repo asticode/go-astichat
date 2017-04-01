@@ -38,6 +38,16 @@ func New(c Configuration) *Builder {
 	}
 }
 
+// RandomID allows testing functions using it
+var RandomID = func() string {
+	return xid.New().String()
+}
+
+// ExecCmd allows testing functions using it
+var ExecCmd = func(cmd *exec.Cmd) ([]byte, error) {
+	return cmd.CombinedOutput()
+}
+
 // Build builds the client
 func (b *Builder) Build(os, username string, prvClient *astichat.PrivateKey, pubServer *astichat.PublicKey) (o string, err error) {
 	// Retrieve git version
@@ -47,7 +57,7 @@ func (b *Builder) Build(os, username string, prvClient *astichat.PrivateKey, pub
 	}
 
 	// Init output path
-	o = fmt.Sprintf("%s/%s", b.pathWorkingDirectory, xid.New().String())
+	o = fmt.Sprintf("%s/%s", b.pathWorkingDirectory, RandomID())
 
 	// Marshal client's private key
 	var prvClientBytes []byte
@@ -76,7 +86,7 @@ func (b *Builder) Build(os, username string, prvClient *astichat.PrivateKey, pub
 
 	// Exec
 	var co []byte
-	if co, err = cmd.CombinedOutput(); err != nil {
+	if co, err = ExecCmd(cmd); err != nil {
 		err = fmt.Errorf("%s: %s", err, string(co))
 		return
 	}
@@ -89,7 +99,7 @@ func (b *Builder) buildEnv(outputOS string) (o []string) {
 	o = []string{"GOPATH=" + os.Getenv("GOPATH"), "PATH=" + os.Getenv("PATH")}
 	switch outputOS {
 	case OSMaxOSX:
-		o = append(o, "GOOS=darwin", "GOARCH=386")
+		o = append(o, "GOOS=darwin", "GOARCH=amd64")
 	case OSWindows:
 		o = append(o, "GOOS=windows", "GOARCH=amd64")
 	case OSWindows32:
@@ -104,7 +114,7 @@ func (b *Builder) buildEnv(outputOS string) (o []string) {
 func (b *Builder) gitVersion() (o []byte, err error) {
 	var cmd = exec.Command("git", "--git-dir", fmt.Sprintf("%s/src/%s/.git", os.Getenv("GOPATH"), repoName), "rev-parse", "HEAD")
 	b.Logger.Debugf("Running %s", strings.Join(cmd.Args, " "))
-	if o, err = cmd.CombinedOutput(); err != nil {
+	if o, err = ExecCmd(cmd); err != nil {
 		return
 	}
 	o = bytes.TrimSpace(o)

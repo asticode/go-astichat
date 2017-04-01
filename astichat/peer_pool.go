@@ -31,6 +31,13 @@ func (pp *PeerPool) Get(username string) (p *Peer, ok bool) {
 	return
 }
 
+// Len returns the length of the pool
+func (pp *PeerPool) Len() int {
+	pp.mutex.Lock()
+	defer pp.mutex.Unlock()
+	return len(pp.pool)
+}
+
 // Peers returns the peers in the pool
 func (pp *PeerPool) Peers() (o []*Peer) {
 	pp.mutex.Lock()
