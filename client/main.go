@@ -17,6 +17,7 @@ var (
 	Version          string
 )
 
+// TODO One should be able to choose between client-2-server or client-2-client connections
 func main() {
 	// Parse command
 	var s = astiflag.Subcommand()

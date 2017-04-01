@@ -154,7 +154,9 @@ func HandleHomepageGET(rw http.ResponseWriter, r *http.Request, p httprouter.Par
 }
 
 // HandleDownloadClientGET returns the download client handler
-// TODO Find a way to upgrade versions while keeping safely private key => encrypted token which contains date
+// TODO Regenerate private key on upgrade. To make sure upgrade demand comes from the right place, client must
+// ask for a token generated server-side (and stored in the storage with a timestamp), and on upgrade the server
+// checks the encrypted message contains the correct token and validate the timestamp as well
 func HandleDownloadClientGET(rw http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	// Init
 	var bd = BuilderFromContext(r.Context())

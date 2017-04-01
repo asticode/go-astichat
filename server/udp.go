@@ -15,6 +15,7 @@ import (
 
 // ServerUDP represents an UDP server
 // TODO Create rooms => creator controls who can join
+// TODO Handle client-2-server connections with rabbitmq
 type ServerUDP struct {
 	logger   xlog.Logger
 	peerPool *astichat.PeerPool
