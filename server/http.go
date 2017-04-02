@@ -158,20 +158,12 @@ func HandleHomepageGET(rw http.ResponseWriter, r *http.Request, p httprouter.Par
 	}
 }
 
-// HTTPError represents an http error
-type HTTPError struct {
-	Error string `json:"error"`
-}
-
 // ProcessHTTPError processes HTTP errors
-// TODO Handle json error in JS
 func ProcessHTTPErrors(rw http.ResponseWriter, l xlog.Logger, errRequest, errServer *error) {
 	// Request error
 	if *errRequest != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		if errMarshal := json.NewEncoder(rw).Encode(HTTPError{Error: (*errRequest).Error()}); errMarshal != nil {
-			l.Errorf("%s while fetching marshaling request error %s", *errRequest)
-		}
+		rw.Write([]byte("<script>window.location = '/?error=" + (*errRequest).Error() + "'</script>"))
 		return
 	}
 
@@ -203,6 +195,7 @@ var IOUtilReadFile = func(path string) ([]byte, error) {
 }
 
 // HandleDownloadPOST returns a newly built client
+// TODO Present file as inline attachment even in AJAX => split in 2 steps?
 // TODO Regenerate private key on upgrade. To make sure upgrade demand comes from the right place, client must
 // ask for a token generated server-side (and stored in the storage with a timestamp), and on upgrade the server
 // checks the encrypted message contains the correct token and validate the timestamp as well
