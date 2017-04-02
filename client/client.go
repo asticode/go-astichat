@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"net/http"
+
 	"github.com/asticode/go-astichat/astichat"
 	"github.com/asticode/go-astiudp"
 	"github.com/rs/xlog"
@@ -21,6 +23,7 @@ import (
 type Client struct {
 	channelQuit     chan bool
 	logger          xlog.Logger
+	now             *astichat.Now
 	peerPool        *astichat.PeerPool
 	privateKey      *astichat.PrivateKey
 	server          *astiudp.Server
@@ -66,6 +69,24 @@ func (cl *Client) Init(c Configuration) (err error) {
 	if cl.serverUDPAddr, err = net.ResolveUDPAddr("udp4", c.ServerUDPAddr); err != nil {
 		return
 	}
+
+	// We're getting the hour from the server and incrementing it manually so that we don't have to trust local
+	// time that could be modified by the user
+	var req *http.Request
+	if req, err = http.NewRequest(http.MethodGet, cl.serverHTTPAddr+"/now", nil); err != nil {
+		return
+	}
+	var resp *http.Response
+	if resp, err = http.DefaultClient.Do(req); err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	var t time.Time
+	if err = json.NewDecoder(resp.Body).Decode(&t); err != nil {
+		return
+	}
+	cl.now = astichat.NewNow(t)
+	go cl.now.Update()
 
 	// Get passphrase
 	fmt.Println("Enter your passphrase:")

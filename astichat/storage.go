@@ -14,6 +14,7 @@ var (
 // Storage represents a storage interface
 type Storage interface {
 	ChattererCreate(username string, pubClient *PublicKey, prvServer *PrivateKey) (Chatterer, error)
+	ChattererDeleteByUsername(username string) error
 	ChattererFetchByPublicKey(publicKey *PublicKey) (Chatterer, error)
 	ChattererFetchByUsername(username string) (Chatterer, error)
 	ChattererUpdate(i Chatterer) error
@@ -24,6 +25,9 @@ type NopStorage struct{}
 
 func (s NopStorage) ChattererCreate(username string, pubClient *PublicKey, prvServer *PrivateKey) (Chatterer, error) {
 	return Chatterer{}, nil
+}
+func (s NopStorage) ChattererDeleteByUsername(username string) error {
+	return nil
 }
 func (s NopStorage) ChattererFetchByPublicKey(publicKey *PublicKey) (Chatterer, error) {
 	return Chatterer{}, nil
@@ -49,6 +53,14 @@ func (s *MockedStorage) ChattererCreate(username string, pubClient *PublicKey, p
 	c = Chatterer{ClientPublicKey: pubClient, ID: bson.NewObjectId(), ServerPrivateKey: prvServer, Username: username}
 	s.Chatterers = append(s.Chatterers, c)
 	return c, nil
+}
+func (s *MockedStorage) ChattererDeleteByUsername(username string) error {
+	for i, c := range s.Chatterers {
+		if username == c.Username {
+			s.Chatterers = append(s.Chatterers[:i], s.Chatterers[i+1:]...)
+		}
+	}
+	return nil
 }
 func (s MockedStorage) ChattererFetchByPublicKey(publicKey *PublicKey) (Chatterer, error) {
 	for _, c := range s.Chatterers {

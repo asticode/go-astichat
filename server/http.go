@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -157,6 +158,50 @@ func HandleHomepageGET(rw http.ResponseWriter, r *http.Request, p httprouter.Par
 	}
 }
 
+// HTTPError represents an http error
+type HTTPError struct {
+	Error string `json:"error"`
+}
+
+// ProcessHTTPError processes HTTP errors
+// TODO Handle json error in JS
+func ProcessHTTPErrors(rw http.ResponseWriter, l xlog.Logger, errRequest, errServer *error) {
+	// Request error
+	if *errRequest != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		if errMarshal := json.NewEncoder(rw).Encode(HTTPError{Error: (*errRequest).Error()}); errMarshal != nil {
+			l.Errorf("%s while fetching marshaling request error %s", *errRequest)
+			return
+		}
+	}
+
+	// Server error
+	if *errServer != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+}
+
+// AstichatNewPrivateKey allows testing functions using it
+var AstichatNewPrivateKey = func(passphrase string) (*astichat.PrivateKey, error) {
+	return astichat.NewPrivateKey(passphrase)
+}
+
+// BuilderBuild allows testing functions using it
+var BuilderBuild = func(b *builder.Builder, os, username string, prvClient *astichat.PrivateKey, pubServer *astichat.PublicKey) (string, error) {
+	return b.Build(os, username, prvClient, pubServer)
+}
+
+// OSRemove allows testing functions using it
+var OSRemove = func(path string) error {
+	return os.Remove(path)
+}
+
+// IOUtilReadFile allows testing functions using it
+var IOUtilReadFile = func(path string) ([]byte, error) {
+	return ioutil.ReadFile(path)
+}
+
 // HandleDownloadPOST returns a newly built client
 // TODO Regenerate private key on upgrade. To make sure upgrade demand comes from the right place, client must
 // ask for a token generated server-side (and stored in the storage with a timestamp), and on upgrade the server
@@ -167,35 +212,35 @@ func HandleDownloadPOST(rw http.ResponseWriter, r *http.Request, p httprouter.Pa
 	var l = LoggerFromContext(r.Context())
 	var s = StorageFromContext(r.Context())
 
+	// Process HTTP errors
+	var errServer error
+	var errRequest error
+	defer ProcessHTTPErrors(rw, l, &errRequest, &errServer)
+
 	// Username is empty
 	var username = r.FormValue("username")
 	if len(username) == 0 {
 		l.Error("Empty username")
-		rw.WriteHeader(http.StatusBadRequest)
-		// TODO Find a way to handle errors in JS as well
-		rw.Write([]byte("Please enter a username"))
+		errRequest = errors.New("Please enter a username")
 		return
 	}
 
 	// Username is unique
-	var err error
-	if _, err = s.ChattererFetchByUsername(username); err != nil && err != astichat.ErrNotFoundInStorage {
-		l.Errorf("%s while fetching chatterer by username %s", err, username)
-		rw.WriteHeader(http.StatusInternalServerError)
+	if _, errServer = s.ChattererFetchByUsername(username); errServer != nil && errServer != astichat.ErrNotFoundInStorage {
+		l.Errorf("%s while fetching chatterer by username %s", errServer, username)
 		return
-	} else if err == nil {
+	} else if errServer == nil {
 		l.Errorf("Username %s is already used", username)
-		rw.WriteHeader(http.StatusBadRequest)
-		rw.Write(append([]byte(fmt.Sprintf("Username %s is already used", username))))
+		errRequest = errors.New("Username is already used")
 		return
 	}
+	errServer = nil
 
 	// Password is not empty
 	var password = r.FormValue("password")
 	if len(password) == 0 {
 		l.Error("Empty password")
-		rw.WriteHeader(http.StatusBadRequest)
-		rw.Write([]byte("Please enter a password"))
+		errRequest = errors.New("Please enter a password")
 		return
 	}
 
@@ -203,105 +248,82 @@ func HandleDownloadPOST(rw http.ResponseWriter, r *http.Request, p httprouter.Pa
 	var outputOS = r.FormValue("os")
 	if !builder.IsValidOS(outputOS) {
 		l.Errorf("Invalid os %s", outputOS)
-		rw.WriteHeader(http.StatusBadRequest)
-		rw.Write([]byte(fmt.Sprintf("Invalid os %s", outputOS)))
+		errRequest = errors.New("Invalid OS")
 		return
 	}
 
 	// Generate client's private key
 	var prvClient *astichat.PrivateKey
-	if prvClient, err = astichat.NewPrivateKey(password); err != nil {
-		l.Errorf("%s while generating private key", err)
-		rw.WriteHeader(http.StatusInternalServerError)
+	if prvClient, errServer = AstichatNewPrivateKey(password); errServer != nil {
+		l.Errorf("%s while generating private key", errServer)
 		return
 	}
 
 	// Get client's public key
 	var pubClient *astichat.PublicKey
-	if pubClient, err = prvClient.PublicKey(); err != nil {
-		l.Errorf("%s while getting public key from rsa private key", err)
-		rw.WriteHeader(http.StatusInternalServerError)
+	if pubClient, errServer = prvClient.PublicKey(); errServer != nil {
+		l.Errorf("%s while getting public key from rsa private key", errServer)
 		return
 	}
 
 	// Generate server's private key
 	// TODO Add passphrase too ? For unmarshal, use global variable taken from conf ?
 	var prvServer *astichat.PrivateKey
-	if prvServer, err = astichat.NewPrivateKey(""); err != nil {
-		l.Errorf("%s while generating private key", err)
-		rw.WriteHeader(http.StatusInternalServerError)
+	if prvServer, errServer = AstichatNewPrivateKey(""); errServer != nil {
+		l.Errorf("%s while generating private key", errServer)
 		return
 	}
 
 	// Get server's public key
 	var pubServer *astichat.PublicKey
-	if pubServer, err = prvServer.PublicKey(); err != nil {
-		l.Errorf("%s while getting public key from rsa private key", err)
-		rw.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	// Make sure client's public key is unique
-	if _, err = s.ChattererFetchByPublicKey(pubClient); err != nil && err != astichat.ErrNotFoundInStorage {
-		l.Errorf("%s while fetching chatterer by public key %s", err, pubClient)
-		rw.WriteHeader(http.StatusInternalServerError)
-		return
-	} else if err == nil {
-		l.Errorf("Public key %s is already used", pubClient)
-		rw.WriteHeader(http.StatusBadRequest)
-		rw.Write(append([]byte("Public key is already used")))
+	if pubServer, errServer = prvServer.PublicKey(); errServer != nil {
+		l.Errorf("%s while getting public key from rsa private key", errServer)
 		return
 	}
 
 	// Build client
 	var outputPath string
-	if outputPath, err = bd.Build(outputOS, username, prvClient, pubServer); err != nil {
-		l.Errorf("%s while building client for os %s", err, outputOS)
-		rw.WriteHeader(http.StatusInternalServerError)
+	if outputPath, errServer = BuilderBuild(bd, outputOS, username, prvClient, pubServer); errServer != nil {
+		l.Errorf("%s while building client for os %s", errServer, outputOS)
 		return
 	}
-	defer os.Remove(outputPath)
+	defer OSRemove(outputPath)
 
 	// Create chatterer
-	if _, err = s.ChattererCreate(username, pubClient, prvServer); err != nil {
-		l.Errorf("%s while creating chatterer with username %s and public key %s", err, username, pubClient)
-		rw.WriteHeader(http.StatusInternalServerError)
+	if _, errServer = s.ChattererCreate(username, pubClient, prvServer); errServer != nil {
+		l.Errorf("%s while creating chatterer with username %s and public key %s", errServer, username, pubClient)
 		return
 	}
 
 	// Read file
 	var b []byte
-	if b, err = ioutil.ReadFile(outputPath); err != nil {
-		l.Errorf("%s while reading file %s", err, outputPath)
-		rw.WriteHeader(http.StatusInternalServerError)
+	if b, errServer = IOUtilReadFile(outputPath); errServer != nil {
+		l.Errorf("%s while reading file %s", errServer, outputPath)
 		return
 	}
 
 	// Set headers
-	// TODO Are those headers correct ?
+	rw.Header().Set("Pragma", "public")
+	rw.Header().Set("Cache-Control", "private")
 	rw.Header().Set("Content-Disposition", "attachment; filename=astichat.exe")
 	rw.Header().Set("Content-Type", r.Header.Get("Content-Type"))
+	rw.Header().Set("Content-Transfer-Encodin", "binary")
 	rw.Header().Set("Content-Length", strconv.Itoa(len(b)))
 	rw.Write(b)
-
-	// TODO Find a way to redirect as well
 }
 
 // HandleNowGET returns the current time
 func HandleNowGET(rw http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	// Init
 	var l = LoggerFromContext(r.Context())
-	var now = Now()
 
 	// Marshal
-	var b []byte
 	var err error
-	if b, err = now.MarshalText(); err != nil {
-		l.Errorf("%s while marshaling time", err)
+	if err = json.NewEncoder(rw).Encode(Now()); err != nil {
+		l.Errorf("%s while json marshaling now", err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	rw.Write(b)
 }
 
 // GenerateToken allows testing functions using it
@@ -322,21 +344,23 @@ func HandleTokenPOST(rw http.ResponseWriter, r *http.Request, p httprouter.Param
 	var l = LoggerFromContext(r.Context())
 	var s = StorageFromContext(r.Context())
 
+	// Process HTTP errors
+	var errServer error
+	var errRequest error
+	defer ProcessHTTPErrors(rw, l, &errRequest, &errServer)
+
 	// Username is empty
 	var username = r.FormValue("username")
 	if len(username) == 0 {
 		l.Error("Empty username")
-		rw.WriteHeader(http.StatusBadRequest)
-		rw.Write([]byte("Please enter a username"))
+		errRequest = errors.New("Please enter a username")
 		return
 	}
 
 	// Fetch chatterer
 	var c astichat.Chatterer
-	var err error
-	if c, err = s.ChattererFetchByUsername(username); err != nil && err != astichat.ErrNotFoundInStorage {
-		l.Errorf("%s while fetching chatterer by username %s", err, username)
-		rw.WriteHeader(http.StatusInternalServerError)
+	if c, errServer = s.ChattererFetchByUsername(username); errServer != nil && errServer != astichat.ErrNotFoundInStorage {
+		l.Errorf("%s while fetching chatterer by username %s", errServer, username)
 		return
 	}
 
@@ -345,16 +369,15 @@ func HandleTokenPOST(rw http.ResponseWriter, r *http.Request, p httprouter.Param
 	c.TokenAt = Now()
 
 	// Return token even though username doesn't exist
-	if err != nil {
+	if errServer != nil {
 		l.Errorf("Username %s doesn't exist", username)
 		rw.Write([]byte(c.Token))
 		return
 	}
 
 	// Store token
-	if err = s.ChattererUpdate(c); err != nil {
-		l.Errorf("%s while updating chatterer %s", err, c.ID.Hex())
-		rw.WriteHeader(http.StatusInternalServerError)
+	if errServer = s.ChattererUpdate(c); errServer != nil {
+		l.Errorf("%s while updating chatterer %s", errServer, c.ID.Hex())
 		return
 	}
 }

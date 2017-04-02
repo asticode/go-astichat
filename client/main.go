@@ -42,6 +42,8 @@ func main() {
 	// TODO Print upgrade encrypted token
 	var err error
 	switch s {
+	case "now":
+		fmt.Fprintln(os.Stdout, cl.now.Time)
 	case "username":
 		fmt.Fprintln(os.Stdout, cl.username)
 	case "version":

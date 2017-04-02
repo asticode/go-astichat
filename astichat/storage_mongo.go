@@ -33,6 +33,11 @@ func (s *StorageMongo) ChattererCreate(username string, pubClient *PublicKey, pr
 	return
 }
 
+// ChattererDeleteByUsername deletes a chatterer by its username
+func (s *StorageMongo) ChattererDeleteByUsername(username string) error {
+	return s.mongo.DB(databaseName).C(collectionNameChatterer).Remove(bson.M{"username": username})
+}
+
 // ChattererFetchByPublicKey fetches a chatterer by its public key
 func (s *StorageMongo) ChattererFetchByPublicKey(publicKey *PublicKey) (c Chatterer, err error) {
 	if err = s.mongo.DB(databaseName).C(collectionNameChatterer).Find(bson.M{"public_key": publicKey}).One(&c); err == mgo.ErrNotFound {
