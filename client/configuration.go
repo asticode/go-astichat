@@ -18,6 +18,7 @@ var (
 )
 
 // Configuration represents a configuration
+// TODO Remove the configuration?
 type Configuration struct {
 	ListenAddr     string                `toml:"listen_addr"`
 	Logger         astilog.Configuration `toml:"logger"`

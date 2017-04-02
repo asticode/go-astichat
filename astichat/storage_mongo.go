@@ -28,7 +28,7 @@ func NewStorageMongo(l xlog.Logger, s *mgo.Session) *StorageMongo {
 
 // ChattererCreate creates a chatterer based on a username and a public key
 func (s *StorageMongo) ChattererCreate(username string, pubClient *PublicKey, prvServer *PrivateKey) (c Chatterer, err error) {
-	c = Chatterer{ClientPublicKey: pubClient, ServerPrivateKey: prvServer, Username: username}
+	c = Chatterer{ClientPublicKey: pubClient, ID: bson.NewObjectId(), ServerPrivateKey: prvServer, Username: username}
 	err = s.mongo.DB(databaseName).C(collectionNameChatterer).Insert(&c)
 	return
 }

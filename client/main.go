@@ -20,6 +20,7 @@ var (
 )
 
 // TODO One should be able to choose between client-2-server or client-2-client connections
+// TODO Use UI instead
 func main() {
 	// Parse command
 	var s = astiflag.Subcommand()

@@ -65,7 +65,7 @@ func (s *ServerHTTP) ListenAndServe() {
 	// Website
 	r.GET("/", HandleHomepageGET)
 	r.POST("/download", HandleDownloadPOST)
-	r.POST("/now", HandleNowGET)
+	r.GET("/now", HandleNowGET)
 	r.POST("/token", HandleTokenPOST)
 
 	// Static files
@@ -171,8 +171,8 @@ func ProcessHTTPErrors(rw http.ResponseWriter, l xlog.Logger, errRequest, errSer
 		rw.WriteHeader(http.StatusBadRequest)
 		if errMarshal := json.NewEncoder(rw).Encode(HTTPError{Error: (*errRequest).Error()}); errMarshal != nil {
 			l.Errorf("%s while fetching marshaling request error %s", *errRequest)
-			return
 		}
+		return
 	}
 
 	// Server error
@@ -372,6 +372,7 @@ func HandleTokenPOST(rw http.ResponseWriter, r *http.Request, p httprouter.Param
 	if errServer != nil {
 		l.Errorf("Username %s doesn't exist", username)
 		rw.Write([]byte(c.Token))
+		errServer = nil
 		return
 	}
 
