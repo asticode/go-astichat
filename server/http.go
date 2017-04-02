@@ -8,7 +8,6 @@ import (
 	"os"
 	"strconv"
 	"text/template"
-
 	"time"
 
 	"github.com/asticode/go-astichat/astichat"
@@ -64,7 +63,8 @@ func (s *ServerHTTP) ListenAndServe() {
 
 	// Website
 	r.GET("/", HandleHomepageGET)
-	r.POST("/download/client", HandleDownloadClientPOST)
+	r.POST("/download", HandleDownloadPOST)
+	r.POST("/now", HandleNowGET)
 	r.POST("/token", HandleTokenPOST)
 
 	// Static files
@@ -157,11 +157,11 @@ func HandleHomepageGET(rw http.ResponseWriter, r *http.Request, p httprouter.Par
 	}
 }
 
-// HandleDownloadClientPOST returns the download client handler
+// HandleDownloadPOST returns a newly built client
 // TODO Regenerate private key on upgrade. To make sure upgrade demand comes from the right place, client must
 // ask for a token generated server-side (and stored in the storage with a timestamp), and on upgrade the server
 // checks the encrypted message contains the correct token and validate the timestamp as well
-func HandleDownloadClientPOST(rw http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func HandleDownloadPOST(rw http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	// Init
 	var bd = BuilderFromContext(r.Context())
 	var l = LoggerFromContext(r.Context())
@@ -285,6 +285,23 @@ func HandleDownloadClientPOST(rw http.ResponseWriter, r *http.Request, p httprou
 	rw.Write(b)
 
 	// TODO Find a way to redirect as well
+}
+
+// HandleNowGET returns the current time
+func HandleNowGET(rw http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	// Init
+	var l = LoggerFromContext(r.Context())
+	var now = Now()
+
+	// Marshal
+	var b []byte
+	var err error
+	if b, err = now.MarshalText(); err != nil {
+		l.Errorf("%s while marshaling time", err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	rw.Write(b)
 }
 
 // GenerateToken allows testing functions using it

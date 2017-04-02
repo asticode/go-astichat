@@ -13,6 +13,22 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestHandleNowGET(t *testing.T) {
+	// Init
+	var rw = httptest.NewRecorder()
+	main.Now = func() time.Time {
+		return time.Unix(100, 0)
+	}
+
+	// Assert
+	main.HandleNowGET(rw, &http.Request{}, httprouter.Params{})
+	assert.Equal(t, http.StatusOK, rw.Code)
+	var now time.Time
+	var err = now.UnmarshalText(rw.Body.Bytes())
+	assert.NoError(t, err)
+	assert.Equal(t, time.Unix(100, 0), now)
+}
+
 func TestHandleTokenPOST(t *testing.T) {
 	// Init
 	var l = xlog.NopLogger
