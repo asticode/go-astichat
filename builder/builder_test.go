@@ -20,7 +20,7 @@ var (
 
 func TestBuilder(t *testing.T) {
 	// Init
-	var b = builder.New(builder.Configuration{PathWorkingDirectory: "/working/directory/path", ServerHTTPAddr: "server_http_addr", ServerUDPAddr: "server_udp_addr"})
+	var b = builder.New(builder.Configuration{WorkingDirectoryPath: "/working/directory/path", ServerHTTPAddr: "server_http_addr", ServerUDPAddr: "server_udp_addr"})
 	var prv = astichat.PrivateKey{}
 	prv.SetPassphrase("")
 	var err = prv.UnmarshalText([]byte(prvString))

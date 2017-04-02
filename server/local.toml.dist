@@ -1,0 +1,18 @@
+# Base
+path_static = "PATH_STATIC"
+path_templates = "PATH_TEMPLATES"
+
+# Addr
+[addr]
+http = "LOCAL_ADDR_HTTP"
+udp = "LOCAL_ADDR_UDP"
+
+# Builder
+[builder]
+server_http_addr = "REMOTE_ADDR_HTTP"
+server_udp_addr = "REMOTE_ADDR_UDP"
+working_directory_path = "BUILDER_WORKING_DIRECTORY_PATH"
+
+# Mongo
+[mongo]
+addr = "MONGO_ADDR"

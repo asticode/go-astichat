@@ -25,7 +25,7 @@ const (
 // Builder represents a builder
 type Builder struct {
 	Logger               xlog.Logger
-	pathWorkingDirectory string
+	workingDirectoryPath string
 	serverHTTPAddr       string
 	serverUDPAddr        string
 }
@@ -34,7 +34,7 @@ type Builder struct {
 func New(c Configuration) *Builder {
 	return &Builder{
 		Logger:               xlog.NopLogger,
-		pathWorkingDirectory: c.PathWorkingDirectory,
+		workingDirectoryPath: c.WorkingDirectoryPath,
 		serverHTTPAddr:       c.ServerHTTPAddr,
 		serverUDPAddr:        c.ServerUDPAddr,
 	}
@@ -59,7 +59,7 @@ func (b *Builder) Build(os, username string, prvClient *astichat.PrivateKey, pub
 	}
 
 	// Init output path
-	o = fmt.Sprintf("%s/%s", b.pathWorkingDirectory, RandomID())
+	o = fmt.Sprintf("%s/%s", b.workingDirectoryPath, RandomID())
 
 	// Marshal client's private key
 	var prvClientBytes []byte
