@@ -94,6 +94,7 @@ func (cl *Client) Init(c Configuration) (err error) {
 	if b, err = terminal.ReadPassword(int(syscall.Stdin)); err != nil {
 		return
 	}
+	cl.privateKey = &astichat.PrivateKey{}
 	cl.privateKey.SetPassphrase(string(bytes.TrimSpace(b)))
 
 	// Unmarshal client's private key
@@ -102,6 +103,7 @@ func (cl *Client) Init(c Configuration) (err error) {
 	}
 
 	// Unmarshal server's public key
+	cl.serverPublicKey = &astichat.PublicKey{}
 	if err = cl.serverPublicKey.UnmarshalText([]byte(ServerPublicKey)); err != nil {
 		return
 	}
@@ -166,17 +168,19 @@ func (c *Client) HandleStart() astiudp.ListenerFunc {
 
 // Disconnect disconnects from the server
 func (c *Client) Disconnect() (err error) {
-	// Encrypt message
-	// TODO Encrypt token instead
-	var m astichat.EncryptedMessage
-	if m, err = astichat.NewEncryptedMessage(astichat.MessageDisconnect, c.serverPublicKey, c.privateKey); err != nil {
-		return
-	}
+	if c.serverPublicKey != nil && c.privateKey != nil {
+		// Encrypt message
+		// TODO Encrypt token instead
+		var m astichat.EncryptedMessage
+		if m, err = astichat.NewEncryptedMessage(astichat.MessageDisconnect, c.serverPublicKey, c.privateKey); err != nil {
+			return
+		}
 
-	// Write
-	c.logger.Debugf("Sending peer.disconnect to %s", c.serverUDPAddr)
-	if err = c.server.Write(astichat.EventNamePeerDisconnect, astichat.Body{EncryptedMessage: m, Username: c.username}, c.serverUDPAddr); err != nil {
-		return
+		// Write
+		c.logger.Debugf("Sending peer.disconnect to %s", c.serverUDPAddr)
+		if err = c.server.Write(astichat.EventNamePeerDisconnect, astichat.Body{EncryptedMessage: m, Username: c.username}, c.serverUDPAddr); err != nil {
+			return
+		}
 	}
 	return
 }

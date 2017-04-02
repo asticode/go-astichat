@@ -1,17 +1,15 @@
 package astichat
 
 import (
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha512"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/pem"
 	"errors"
 	"fmt"
-
-	"encoding/pem"
-
-	"crypto"
-	"crypto/sha512"
 
 	"gopkg.in/mgo.v2/bson"
 )

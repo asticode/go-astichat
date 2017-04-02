@@ -32,16 +32,21 @@ func main() {
 	// Init logger
 	var l = astilog.New(c.Logger)
 
-	// Init client
+	// Create client
 	var cl = NewClient(l)
 	defer cl.Close()
+
+	// Init client
+	var err error
+	if err = cl.Init(c); err != nil {
+		l.Fatal(err)
+	}
 
 	// Handle signals
 	cl.HandleSignals()
 
 	// Switch on subcommand
 	// TODO Print upgrade encrypted token
-	var err error
 	switch s {
 	case "now":
 		fmt.Fprintln(os.Stdout, cl.now.Time)
@@ -50,11 +55,6 @@ func main() {
 	case "version":
 		fmt.Fprintln(os.Stdout, cl.version)
 	default:
-		// Init client
-		if err = cl.Init(c); err != nil {
-			l.Fatal(err)
-		}
-
 		// Listen and read
 		go cl.server.ListenAndRead()
 

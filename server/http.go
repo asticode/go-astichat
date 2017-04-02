@@ -159,7 +159,7 @@ func HandleHomepageGET(rw http.ResponseWriter, r *http.Request, p httprouter.Par
 }
 
 // ProcessHTTPError processes HTTP errors
-func ProcessHTTPErrors(rw http.ResponseWriter, l xlog.Logger, errRequest, errServer *error) {
+func ProcessHTTPErrors(rw http.ResponseWriter, errRequest, errServer *error) {
 	// Request error
 	if *errRequest != nil {
 		rw.WriteHeader(http.StatusBadRequest)
@@ -208,7 +208,7 @@ func HandleDownloadPOST(rw http.ResponseWriter, r *http.Request, p httprouter.Pa
 	// Process HTTP errors
 	var errServer error
 	var errRequest error
-	defer ProcessHTTPErrors(rw, l, &errRequest, &errServer)
+	defer ProcessHTTPErrors(rw, &errRequest, &errServer)
 
 	// Username is empty
 	var username = r.FormValue("username")
@@ -340,7 +340,7 @@ func HandleTokenPOST(rw http.ResponseWriter, r *http.Request, p httprouter.Param
 	// Process HTTP errors
 	var errServer error
 	var errRequest error
-	defer ProcessHTTPErrors(rw, l, &errRequest, &errServer)
+	defer ProcessHTTPErrors(rw, &errRequest, &errServer)
 
 	// Username is empty
 	var username = r.FormValue("username")
