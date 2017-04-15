@@ -15,44 +15,40 @@
 </head>
 <body>
 
-<!-- Title -->
-<div class="wrapper wrapper-large">
-    <h1>Astichat</h1>
-    <h2>a lightweight encrypted chat</h2>
-</div>
-
 <!-- Link -->
-<div class="wrapper wrapper-small light">
-    This project is open-source. Check it out on <a href="https://github.com/asticode/go-astichat" target="_blank">github.com</a> and contribute!
+<div class="wrapper link light">
+    <div class="content">
+        This project is open-source. Check it out on <a href="https://github.com/asticode/go-astichat" target="_blank">github.com</a> and contribute!
+    </div>
 </div>
 
-<!-- Content -->
-<div class="wrapper no-padding">
-    <h3>Download the client</h3>
-
-    <form action="/download" method="POST">
-        <div class="form-error hidden"><div class="alert alert-danger"></div></div>
-        <input placeholder="Your username" type="text" name="username"/>
-        <div class="checkbox">
-            <input type="checkbox" id="has_token">
-            I have a token
-        </div>
-        <div id="with_token" class="hidden">
-            <textarea placeholder="Paste your token here" name="token"></textarea>
-        </div>
-        <div id="without_token">
-            <input placeholder="Your password" type="password" name="password"/>
+<!-- Download -->
+<div class="wrapper download">
+    <div class="content">
+        <h1>Astichat</h1>
+        <h2>a lightweight encrypted chat</h2>
+        <form action="/download" method="POST">
+            <div class="form-error hidden"><div class="alert alert-danger"></div></div>
+            <input placeholder="Your username" type="text" name="username"/>
             <select name="os">
                 <option value="linux">Linux</option>
                 <option value="macosx">MAC OSX</option>
                 <option value="windows">Windows</option>
                 <option value="windows32">Windows 32 bits</option>
             </select>
-        </div>
-        <button class="btn-full btn-success">Download*</button>
-    </form>
-
-    <div>* we only store the mapping between your public key and your username</div>
+            <div class="checkbox">
+                <input type="checkbox" id="has_token">
+                I have a token
+            </div>
+            <div id="with_token" class="hidden">
+                <textarea placeholder="Paste your token here" name="token"></textarea>
+            </div>
+            <div id="without_token">
+                <input placeholder="Your password" type="password" name="password"/>
+            </div>
+            <button class="btn-full btn-success">Download</button>
+        </form>
+    </div>
 </div>
 
 <!-- Script -->

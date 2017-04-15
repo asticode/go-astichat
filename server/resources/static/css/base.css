@@ -5,10 +5,13 @@
 html, body {
     background-color: #1F1F1F;
     color: #fff;
+    display: table;
     font-family: "Source Sans Pro";
+    font-size: 16px;
+    height: 100%;
     margin: 0;
     padding: 0;
-    font-size: 16px;
+    width: 100%;
 }
 a, a:visited {
     color: coral;
@@ -19,9 +22,18 @@ a, a:visited {
 }
 
 .wrapper {
-    text-align: center;
-    padding: 3em;
+    display: table-row;
     width: 100%;
+}
+
+.wrapper .content {
+    display: table-cell;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wrapper.link .content {
+    padding: 0.3em;
 }
 
 .wrapper-large {
@@ -29,7 +41,7 @@ a, a:visited {
 }
 
 .wrapper-small {
-    padding: 2em;
+    padding: 1em;
 }
 
 h1 {
@@ -39,7 +51,7 @@ h1 {
 
 h2 {
     font-size: 1.5em;
-    margin: 0;
+    margin: 0 0 2.5em 0;
 }
 
 .wrapper.light {
@@ -57,7 +69,7 @@ h3 {
 }
 
 form {
-    margin: 0 auto 50px auto;
+    margin: auto;
     width: 300px;
 }
 
