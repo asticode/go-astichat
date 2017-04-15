@@ -158,12 +158,26 @@ func HandleHomepageGET(rw http.ResponseWriter, r *http.Request, p httprouter.Par
 	}
 }
 
+// Body represents a base body
+type BodyBase struct {
+	Error *BodyError `json:"error,omitempty"`
+}
+
+// Error represents an error body
+type BodyError struct {
+	Message string `json:"message,omitempty"`
+}
+
 // ProcessHTTPError processes HTTP errors
-func ProcessHTTPErrors(rw http.ResponseWriter, errRequest, errServer *error) {
+func ProcessHTTPErrors(rw http.ResponseWriter, errRequest, errServer *error, redirectURL string) {
 	// Request error
 	if *errRequest != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		rw.Write([]byte("<script>window.location = '/?error=" + (*errRequest).Error() + "'</script>"))
+		if redirectURL != "" {
+			rw.Write([]byte("<script>window.location = \"" + redirectURL + "?error=" + (*errRequest).Error() + "\"</script>"))
+		} else {
+			json.NewEncoder(rw).Encode(BodyBase{Error: &BodyError{Message: (*errRequest).Error()}})
+		}
 		return
 	}
 
@@ -208,7 +222,7 @@ func HandleDownloadPOST(rw http.ResponseWriter, r *http.Request, p httprouter.Pa
 	// Process HTTP errors
 	var errServer error
 	var errRequest error
-	defer ProcessHTTPErrors(rw, &errRequest, &errServer)
+	defer ProcessHTTPErrors(rw, &errRequest, &errServer, "/")
 
 	// Username is empty
 	var username = r.FormValue("username")
@@ -340,7 +354,7 @@ func HandleTokenPOST(rw http.ResponseWriter, r *http.Request, p httprouter.Param
 	// Process HTTP errors
 	var errServer error
 	var errRequest error
-	defer ProcessHTTPErrors(rw, &errRequest, &errServer)
+	defer ProcessHTTPErrors(rw, &errRequest, &errServer, "")
 
 	// Username is empty
 	var username = r.FormValue("username")
