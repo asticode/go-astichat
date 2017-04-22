@@ -1,19 +1,22 @@
 var homepage = {
     init: function() {
-        // Has token checkbox
-        var sel = $('#has_token');
+        // Upgrade checkbox
+        var sel = $('#is_upgrade');
         sel.change(function () {
             if($(this).is(":checked")) {
-                $("#with_token").show();
-                $("#without_token").hide();
+                $("#with_upgrade").show();
+                $("button").text("Upgrade");
             } else {
-                $("#with_token").hide();
-                $("#without_token").show();
+                $("#with_upgrade").hide();
+                $("button").text("Download");
             }
         });
         sel.prop("checked", false);
 
         // Errors
+        $("button").click(function() {
+            $('.form-error').hide();
+        });
         if (getQueryParam('error') != '') {
             $('.form-error').show();
             $('.form-error .alert').text(getQueryParam('error'));

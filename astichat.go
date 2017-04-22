@@ -1,3 +1,3 @@
 package astichat
 
-// TODO Update doc
+// TODO Complete readme + add wiki + add link to website

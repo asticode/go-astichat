@@ -30,6 +30,7 @@
         <form action="/download" method="POST">
             <div class="form-error hidden"><div class="alert alert-danger"></div></div>
             <input placeholder="Your username" type="text" name="username"/>
+            <input placeholder="Your password" type="password" name="password"/>
             <select name="os">
                 <option value="linux">Linux</option>
                 <option value="macosx">MAC OSX</option>
@@ -37,14 +38,11 @@
                 <option value="windows32">Windows 32 bits</option>
             </select>
             <div class="checkbox">
-                <input type="checkbox" id="has_token">
-                I have a token
+                <input type="checkbox" id="is_upgrade" name="is_upgrade" value="1">
+                I want to upgrade my client
             </div>
-            <div id="with_token" class="hidden">
+            <div id="with_upgrade" class="hidden">
                 <textarea placeholder="Paste your token here" name="token"></textarea>
-            </div>
-            <div id="without_token">
-                <input placeholder="Your password" type="password" name="password"/>
             </div>
             <button class="btn-full btn-success">Download</button>
         </form>

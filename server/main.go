@@ -11,7 +11,6 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
-// TODO Complete readme + add wiki + add link to website
 func main() {
 	// Parse command
 	var s = astiflag.Subcommand()

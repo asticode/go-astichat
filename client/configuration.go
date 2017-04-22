@@ -11,19 +11,14 @@ import (
 
 // Flags
 var (
-	configPath     = flag.String("c", "", "the config path")
-	listenAddr     = flag.String("l", "", "the listen addr")
-	serverHTTPAddr = flag.String("h", "", "the HTTP server addr")
-	serverUDPAddr  = flag.String("u", "", "the UDP server addr")
+	configPath = flag.String("c", "", "the config path")
+	listenAddr = flag.String("l", "", "the listen addr")
 )
 
 // Configuration represents a configuration
-// TODO Remove the configuration?
 type Configuration struct {
-	ListenAddr     string                `toml:"listen_addr"`
-	Logger         astilog.Configuration `toml:"logger"`
-	ServerHTTPAddr string                `toml:"server_http_addr"`
-	ServerUDPAddr  string                `toml:"server_udp_addr"`
+	ListenAddr string                `toml:"listen_addr"`
+	Logger     astilog.Configuration `toml:"logger"`
 }
 
 // TOMLDecodeFile allows testing functions using it
@@ -34,12 +29,11 @@ var TOMLDecodeFile = func(fpath string, v interface{}) (toml.MetaData, error) {
 // NewConfiguration creates a new configuration object
 func NewConfiguration() Configuration {
 	// Global config
-	gc := Configuration{
+	var gc = Configuration{
+		ListenAddr: ":",
 		Logger: astilog.Configuration{
 			AppName: "go-astichat-client",
 		},
-		ServerHTTPAddr: ServerHTTPAddr,
-		ServerUDPAddr:  ServerUDPAddr,
 	}
 
 	// Local config
@@ -51,11 +45,9 @@ func NewConfiguration() Configuration {
 	}
 
 	// Flag config
-	c := Configuration{
-		ListenAddr:     *listenAddr,
-		Logger:         astilog.FlagConfig(),
-		ServerHTTPAddr: *serverHTTPAddr,
-		ServerUDPAddr:  *serverUDPAddr,
+	var c = Configuration{
+		ListenAddr: *listenAddr,
+		Logger:     astilog.FlagConfig(),
 	}
 
 	// Merge configs

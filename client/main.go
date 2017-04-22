@@ -19,8 +19,9 @@ var (
 	Version          string
 )
 
+// TODO Use UI instead + think about go-mobile
 // TODO One should be able to choose between client-2-server or client-2-client connections
-// TODO Use UI instead
+// TODO Remove the configuration via flags and force using the UI
 func main() {
 	// Parse command
 	var s = astiflag.Subcommand()
@@ -46,10 +47,13 @@ func main() {
 	cl.HandleSignals()
 
 	// Switch on subcommand
-	// TODO Print upgrade encrypted token
 	switch s {
-	case "now":
-		fmt.Fprintln(os.Stdout, cl.now.Time)
+	case "token":
+		var token string
+		if token, err = cl.Token(); err != nil {
+			l.Fatal(err)
+		}
+		fmt.Fprintln(os.Stdout, token)
 	case "username":
 		fmt.Fprintln(os.Stdout, cl.username)
 	case "version":

@@ -46,7 +46,7 @@ var TOMLDecodeFile = func(fpath string, v interface{}) (toml.MetaData, error) {
 // NewConfiguration creates a new configuration object
 func NewConfiguration() Configuration {
 	// Global config
-	gc := Configuration{
+	var gc = Configuration{
 		Logger: astilog.Configuration{
 			AppName: "go-astichat-server",
 		},
@@ -66,7 +66,7 @@ func NewConfiguration() Configuration {
 	}
 
 	// Flag config
-	c := Configuration{
+	var c = Configuration{
 		Addr: ConfigurationAddr{
 			HTTP: *addrHTTP,
 			UDP:  *addrUDP,

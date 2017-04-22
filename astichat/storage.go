@@ -2,8 +2,7 @@ package astichat
 
 import (
 	"errors"
-
-	"gopkg.in/mgo.v2/bson"
+	"time"
 )
 
 // Vars
@@ -11,11 +10,20 @@ var (
 	ErrNotFoundInStorage = errors.New("not found in storage")
 )
 
+// Chatterer represents an entity willing to chat
+type Chatterer struct {
+	ClientPublicKey  *PublicKey  `json:"public_key"`
+	ID               string      `json:"-"`
+	ServerPrivateKey *PrivateKey `json:"-"`
+	Token            string      `json:"-"`
+	TokenAt          time.Time   `json:"-"`
+	Username         string      `json:"username"`
+}
+
 // Storage represents a storage interface
 type Storage interface {
 	ChattererCreate(username string, pubClient *PublicKey, prvServer *PrivateKey) (Chatterer, error)
 	ChattererDeleteByUsername(username string) error
-	ChattererFetchByPublicKey(publicKey *PublicKey) (Chatterer, error)
 	ChattererFetchByUsername(username string) (Chatterer, error)
 	ChattererUpdate(i Chatterer) error
 }
@@ -28,9 +36,6 @@ func (s NopStorage) ChattererCreate(username string, pubClient *PublicKey, prvSe
 }
 func (s NopStorage) ChattererDeleteByUsername(username string) error {
 	return nil
-}
-func (s NopStorage) ChattererFetchByPublicKey(publicKey *PublicKey) (Chatterer, error) {
-	return Chatterer{}, nil
 }
 func (s NopStorage) ChattererFetchByUsername(username string) (Chatterer, error) {
 	return Chatterer{}, nil
@@ -50,7 +55,7 @@ func NewMockedStorage() *MockedStorage {
 }
 
 func (s *MockedStorage) ChattererCreate(username string, pubClient *PublicKey, prvServer *PrivateKey) (c Chatterer, err error) {
-	c = Chatterer{ClientPublicKey: pubClient, ID: bson.NewObjectId(), ServerPrivateKey: prvServer, Username: username}
+	c = Chatterer{ClientPublicKey: pubClient, ID: "1234", ServerPrivateKey: prvServer, Username: username}
 	s.Chatterers = append(s.Chatterers, c)
 	return c, nil
 }
@@ -61,14 +66,6 @@ func (s *MockedStorage) ChattererDeleteByUsername(username string) error {
 		}
 	}
 	return nil
-}
-func (s MockedStorage) ChattererFetchByPublicKey(publicKey *PublicKey) (Chatterer, error) {
-	for _, c := range s.Chatterers {
-		if publicKey.String() == c.ClientPublicKey.String() {
-			return c, nil
-		}
-	}
-	return Chatterer{}, ErrNotFoundInStorage
 }
 func (s MockedStorage) ChattererFetchByUsername(username string) (Chatterer, error) {
 	for _, c := range s.Chatterers {

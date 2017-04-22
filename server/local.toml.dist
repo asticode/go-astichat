@@ -1,6 +1,7 @@
 # Base
 path_static = "PATH_STATIC"
 path_templates = "PATH_TEMPLATES"
+server_private_key_passphrase = "SERVER_PRIVATE_KEY_PASSPHRASE"
 
 # Addr
 [addr]

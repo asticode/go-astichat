@@ -4,10 +4,6 @@ import (
 	"encoding/json"
 	"net"
 
-	"fmt"
-
-	"bytes"
-
 	"github.com/asticode/go-astichat/astichat"
 	"github.com/asticode/go-astiudp"
 	"github.com/rs/xlog"
@@ -42,7 +38,7 @@ func (s *ServerUDP) Init(c Configuration) (err error) {
 	}
 
 	// Set up listeners
-	s.server.SetListener(astichat.EventNamePeerRegister, s.HandlePeerRegister())
+	s.server.SetListener(astichat.EventNamePeerConnect, s.HandlePeerConnect())
 	s.server.SetListener(astichat.EventNamePeerDisconnect, s.HandlePeerDisconnect())
 	return
 }
@@ -57,34 +53,33 @@ func (s *ServerUDP) ListenAndServe() {
 	s.server.ListenAndRead()
 }
 
-// HandlePeerRegister handles the peer.register event
-func (s *ServerUDP) HandlePeerRegister() astiudp.ListenerFunc {
+// HandlePeerConnect handles the peer.connect event
+func (s *ServerUDP) HandlePeerConnect() astiudp.ListenerFunc {
 	return func(as *astiudp.Server, eventName string, payload json.RawMessage, addr *net.UDPAddr) (err error) {
 		// Unmarshal
-		var body astichat.Body
-		if err = json.Unmarshal(payload, &body); err != nil {
+		var b astichat.Body
+		if err = json.Unmarshal(payload, &b); err != nil {
 			return
 		}
 
 		// Peer is new to the pool
 		var p *astichat.Peer
 		var ok bool
-		if p, ok = s.peerPool.Get(body.Username); !ok {
+		if p, ok = s.peerPool.Get(b.Request.Username); !ok {
 			// Retrieve chatterer
 			var c astichat.Chatterer
-			if c, err = s.storage.ChattererFetchByUsername(body.Username); err != nil {
+			if c, err = s.storage.ChattererFetchByUsername(b.Request.Username); err != nil {
 				return
 			}
 
-			// Decrypt message
-			var b []byte
-			if b, err = body.EncryptedMessage.Decrypt(c.ClientPublicKey, c.ServerPrivateKey); err != nil {
+			// Process body
+			var msg []byte
+			if msg, err = b.Process(astichat.TimeNow(), c.ServerPrivateKey); err != nil {
 				return
 			}
 
 			// Validate message
-			if !bytes.Equal(b, astichat.MessageRegister) {
-				err = fmt.Errorf("Invalid message register %s", string(b))
+			if err = astichat.ValidateMessage(msg, astichat.MessageConnect); err != nil {
 				return
 			}
 
@@ -103,20 +98,42 @@ func (s *ServerUDP) HandlePeerRegister() astiudp.ListenerFunc {
 		// Loop through peers
 		var ps []*astichat.Peer
 		for _, pp := range s.peerPool.Peers() {
-			// Peer is not the one which just registered
-			if p.ClientPublicKey.String() != pp.ClientPublicKey.String() {
+			// Peer is not the one which just connected
+			if p.Username != pp.Username {
+				// Marshal
+				var msg []byte
+				if msg, err = json.Marshal(p); err != nil {
+					return
+				}
+
+				// Create new body
+				if b, err = astichat.NewBody(msg, astichat.TimeNow(), "", pp.ClientPublicKey); err != nil {
+					return
+				}
+
 				// Send peer.joined event
 				s.logger.Debugf("Sending peer.joined to %s", pp)
-				if err = as.Write(astichat.EventNamePeerJoined, p, pp.Addr); err != nil {
+				if err = as.Write(astichat.EventNamePeerJoined, b, pp.Addr); err != nil {
 					return
 				}
 				ps = append(ps, pp)
 			}
 		}
 
-		// Send peer.registered event
-		s.logger.Debugf("Sending peer.registered to %s", p)
-		if err = as.Write(astichat.EventNamePeerRegistered, ps, p.Addr); err != nil {
+		// Marshal
+		var msg []byte
+		if msg, err = json.Marshal(ps); err != nil {
+			return
+		}
+
+		// Create new body
+		if b, err = astichat.NewBody(msg, astichat.TimeNow(), "", p.ClientPublicKey); err != nil {
+			return
+		}
+
+		// Send peer.connected event
+		s.logger.Debugf("Sending peer.connected to %s", p)
+		if err = as.Write(astichat.EventNamePeerConnected, b, p.Addr); err != nil {
 			return
 		}
 		return
@@ -127,22 +144,21 @@ func (s *ServerUDP) HandlePeerRegister() astiudp.ListenerFunc {
 func (s *ServerUDP) HandlePeerDisconnect() astiudp.ListenerFunc {
 	return func(as *astiudp.Server, eventName string, payload json.RawMessage, addr *net.UDPAddr) (err error) {
 		// Unmarshal
-		var body astichat.Body
-		if err = json.Unmarshal(payload, &body); err != nil {
+		var b astichat.Body
+		if err = json.Unmarshal(payload, &b); err != nil {
 			return
 		}
 
 		// Peer is in the pool
-		if p, ok := s.peerPool.Get(body.Username); ok {
-			// Decrypt message
-			var b []byte
-			if b, err = body.EncryptedMessage.Decrypt(p.ClientPublicKey, p.ServerPrivateKey); err != nil {
+		if p, ok := s.peerPool.Get(b.Request.Username); ok {
+			// Process body
+			var msg []byte
+			if msg, err = b.Process(astichat.TimeNow(), p.Chatterer.ServerPrivateKey); err != nil {
 				return
 			}
 
 			// Validate message
-			if !bytes.Equal(b, astichat.MessageDisconnect) {
-				err = fmt.Errorf("Invalid message disconnect %s", string(b))
+			if err = astichat.ValidateMessage(msg, astichat.MessageDisconnect); err != nil {
 				return
 			}
 
@@ -154,9 +170,20 @@ func (s *ServerUDP) HandlePeerDisconnect() astiudp.ListenerFunc {
 
 			// Loop through peers
 			for _, pp := range s.peerPool.Peers() {
+				// Marshal
+				var msg []byte
+				if msg, err = json.Marshal(p); err != nil {
+					return
+				}
+
+				// Create new body
+				if b, err = astichat.NewBody(msg, astichat.TimeNow(), "", pp.ClientPublicKey); err != nil {
+					return
+				}
+
 				// Send peer.disconnected event
 				s.logger.Debugf("Sending peer.disconnected to %s", pp)
-				if err = as.Write(astichat.EventNamePeerDisconnected, p, pp.Addr); err != nil {
+				if err = as.Write(astichat.EventNamePeerDisconnected, b, pp.Addr); err != nil {
 					return
 				}
 			}

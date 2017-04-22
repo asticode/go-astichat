@@ -33,6 +33,7 @@ a, a:visited {
 }
 
 .wrapper.link .content {
+    height: 60px;
     padding: 0.3em;
 }
 

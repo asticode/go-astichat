@@ -116,7 +116,6 @@ func (b *Builder) buildEnv(outputOS string) (o []string) {
 // GitVersion retrieves the project's git version
 func (b *Builder) gitVersion() (o []byte, err error) {
 	var cmd = exec.Command("git", "--git-dir", fmt.Sprintf("%s/src/%s/.git", os.Getenv("GOPATH"), repoName), "rev-parse", "HEAD")
-	b.Logger.Debugf("Running %s", strings.Join(cmd.Args, " "))
 	if o, err = ExecCmd(cmd); err != nil {
 		return
 	}
