@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/asticode/go-astichat/astichat"
+	"github.com/asticode/go-astilog"
 	"github.com/asticode/go-astitools/slice"
 	"github.com/rs/xid"
-	"github.com/rs/xlog"
 )
 
 // OS
@@ -24,7 +24,7 @@ const (
 
 // Builder represents a builder
 type Builder struct {
-	Logger               xlog.Logger
+	Logger               astilog.Logger
 	workingDirectoryPath string
 	serverHTTPAddr       string
 	serverUDPAddr        string
@@ -33,7 +33,7 @@ type Builder struct {
 // New returns a new builder
 func New(c Configuration) *Builder {
 	return &Builder{
-		Logger:               xlog.NopLogger,
+		Logger:               astilog.NopLogger,
 		workingDirectoryPath: c.WorkingDirectoryPath,
 		serverHTTPAddr:       c.ServerHTTPAddr,
 		serverUDPAddr:        c.ServerUDPAddr,

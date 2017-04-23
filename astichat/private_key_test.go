@@ -36,14 +36,11 @@ func TestKey(t *testing.T) {
 	var prv2 = astichat.PrivateKey{}
 	err = prv2.UnmarshalText([]byte(prv2String))
 	assert.NoError(t, err)
-	var pub2 *astichat.PublicKey
-	pub2, err = prv2.PublicKey()
-	assert.NoError(t, err)
 	var m astichat.EncryptedMessage
-	m, err = astichat.NewEncryptedMessage([]byte("message"), pub1, &prv2)
+	m, err = astichat.NewEncryptedMessage([]byte("message"), pub1)
 	assert.NoError(t, err)
 	var b []byte
-	b, err = m.Decrypt(pub2, &prv1)
+	b, err = m.Decrypt(&prv1)
 	assert.NoError(t, err)
 	assert.Equal(t, "message", string(b))
 }

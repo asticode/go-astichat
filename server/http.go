@@ -12,23 +12,23 @@ import (
 
 	"github.com/asticode/go-astichat/astichat"
 	"github.com/asticode/go-astichat/builder"
+	"github.com/asticode/go-astilog"
 	"github.com/asticode/go-astitools/template"
 	"github.com/julienschmidt/httprouter"
-	"github.com/rs/xlog"
 )
 
 // ServerHTTP represents an HTTP server
 type ServerHTTP struct {
 	addr       string
 	builder    *builder.Builder
-	logger     xlog.Logger
+	logger     astilog.Logger
 	pathStatic string
 	storage    astichat.Storage
 	templates  *template.Template
 }
 
 // NewServerHTTP creates a new HTTP server
-func NewServerHTTP(l xlog.Logger, addr, pathStatic string, b *builder.Builder, stg astichat.Storage) *ServerHTTP {
+func NewServerHTTP(l astilog.Logger, addr, pathStatic string, b *builder.Builder, stg astichat.Storage) *ServerHTTP {
 	return &ServerHTTP{
 		addr:       addr,
 		builder:    b,

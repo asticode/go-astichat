@@ -5,22 +5,22 @@ import (
 	"net"
 
 	"github.com/asticode/go-astichat/astichat"
+	"github.com/asticode/go-astilog"
 	"github.com/asticode/go-astiudp"
-	"github.com/rs/xlog"
 )
 
 // ServerUDP represents an UDP server
 // TODO Create rooms => creator controls who can join
 // TODO Handle client-2-server connections with rabbitmq
 type ServerUDP struct {
-	logger   xlog.Logger
+	logger   astilog.Logger
 	peerPool *astichat.PeerPool
 	server   *astiudp.Server
 	storage  astichat.Storage
 }
 
 // NewServerUDP creates a new UDP sever
-func NewServerUDP(l xlog.Logger, stg astichat.Storage) *ServerUDP {
+func NewServerUDP(l astilog.Logger, stg astichat.Storage) *ServerUDP {
 	return &ServerUDP{
 		logger:   l,
 		peerPool: astichat.NewPeerPool(),

@@ -12,8 +12,8 @@ import (
 	"net/http"
 
 	"github.com/asticode/go-astichat/astichat"
+	"github.com/asticode/go-astilog"
 	"github.com/asticode/go-astiudp"
-	"github.com/rs/xlog"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -21,7 +21,7 @@ import (
 type Client struct {
 	channelQuit     chan bool
 	httpClient      *http.Client
-	logger          xlog.Logger
+	logger          astilog.Logger
 	now             *astichat.Now
 	peerPool        *astichat.PeerPool
 	privateKey      *astichat.PrivateKey
@@ -35,7 +35,7 @@ type Client struct {
 }
 
 // NewClient returns a new client
-func NewClient(l xlog.Logger) *Client {
+func NewClient(l astilog.Logger) *Client {
 	l.Debug("Starting client")
 	return &Client{
 		channelQuit: make(chan bool),

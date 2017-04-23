@@ -8,20 +8,20 @@ import (
 
 	"github.com/asticode/go-astichat/astichat"
 	"github.com/asticode/go-astichat/builder"
-	"github.com/rs/xlog"
+	"github.com/asticode/go-astilog"
 )
 
 // Server represents a server
 type Server struct {
 	channelQuit chan bool
-	logger      xlog.Logger
+	logger      astilog.Logger
 	serverHTTP  *ServerHTTP
 	serverUDP   *ServerUDP
 	startedAt   time.Time
 }
 
 // NewServer returns a new server
-func NewServer(l xlog.Logger, c Configuration, b *builder.Builder, stg astichat.Storage) *Server {
+func NewServer(l astilog.Logger, c Configuration, b *builder.Builder, stg astichat.Storage) *Server {
 	l.Debug("Starting server")
 	return &Server{
 		channelQuit: make(chan bool),
