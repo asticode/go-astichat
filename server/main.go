@@ -20,27 +20,26 @@ func main() {
 	var c = NewConfiguration()
 
 	// Init logger
-	var l = astilog.New(c.Logger)
+	astilog.SetLogger(astilog.New(c.Logger))
 
 	// Init builder
 	var b = builder.New(c.Builder)
-	b.Logger = l
 
 	// Init mongo
 	var ms *mgo.Session
 	var err error
 	if ms, err = astimgo.NewSession(c.Mongo); err != nil {
-		l.Fatal(err)
+		astilog.Fatal(err)
 	}
 	defer ms.Close()
 
 	// Init storage
-	var stg = astichat.NewStorageMongo(l, ms)
+	var stg = astichat.NewStorageMongo(ms)
 
 	// Init server
 	var srv *Server
-	if srv, err = NewServer(l, c, b, stg).Init(c); err != nil {
-		l.Fatal(err)
+	if srv, err = NewServer(c, b, stg).Init(c); err != nil {
+		astilog.Fatal(err)
 	}
 	defer srv.Close()
 

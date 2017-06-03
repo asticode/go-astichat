@@ -21,18 +21,16 @@ import (
 type ServerHTTP struct {
 	addr       string
 	builder    *builder.Builder
-	logger     astilog.Logger
 	pathStatic string
 	storage    astichat.Storage
 	templates  *template.Template
 }
 
 // NewServerHTTP creates a new HTTP server
-func NewServerHTTP(l astilog.Logger, addr, pathStatic string, b *builder.Builder, stg astichat.Storage) *ServerHTTP {
+func NewServerHTTP(addr, pathStatic string, b *builder.Builder, stg astichat.Storage) *ServerHTTP {
 	return &ServerHTTP{
 		addr:       addr,
 		builder:    b,
-		logger:     l,
 		pathStatic: pathStatic,
 		storage:    stg,
 	}
@@ -62,9 +60,9 @@ func (s *ServerHTTP) ListenAndServe() {
 	r.ServeFiles("/static/*filepath", http.Dir(s.pathStatic))
 
 	// Serve
-	s.logger.Debugf("Listening and serving on http://%s", s.addr)
+	astilog.Debugf("Listening and serving on http://%s", s.addr)
 	if err := http.ListenAndServe(s.addr, r); err != nil {
-		s.logger.Fatal(err)
+		astilog.Fatal(err)
 	}
 	return
 }
@@ -73,7 +71,7 @@ func (s *ServerHTTP) ListenAndServe() {
 func (s *ServerHTTP) HandleHomepageGET(rw http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	// Execute template
 	if err := s.templates.ExecuteTemplate(rw, "/homepage.html", nil); err != nil {
-		s.logger.Errorf("%s while executing homepage GET template", err)
+		astilog.Errorf("%s while executing homepage GET template", err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -134,7 +132,7 @@ func (srv *ServerHTTP) HandleDownloadPOST(rw http.ResponseWriter, r *http.Reques
 	// Username is empty
 	var username = r.FormValue("username")
 	if len(username) == 0 {
-		srv.logger.Error("Empty username")
+		astilog.Error("Empty username")
 		errRequest = errors.New("Please enter a username")
 		return
 	}
@@ -142,7 +140,7 @@ func (srv *ServerHTTP) HandleDownloadPOST(rw http.ResponseWriter, r *http.Reques
 	// Password is empty
 	var password = r.FormValue("password")
 	if len(password) == 0 {
-		srv.logger.Error("Empty password")
+		astilog.Error("Empty password")
 		errRequest = errors.New("Please enter a password")
 		return
 	}
@@ -156,18 +154,18 @@ func (srv *ServerHTTP) HandleDownloadPOST(rw http.ResponseWriter, r *http.Reques
 		// Token is empty
 		var token = r.FormValue("token")
 		if len(token) == 0 {
-			srv.logger.Error("Empty token")
+			astilog.Error("Empty token")
 			errRequest = errors.New("Please enter a token")
 			return
 		}
 
 		// Fetch chatterer
 		if c, errServer = srv.storage.ChattererFetchByUsername(username); errServer != nil && errServer != astichat.ErrNotFoundInStorage {
-			srv.logger.Errorf("%s while fetching chatterer by username %s", errServer, username)
+			astilog.Errorf("%s while fetching chatterer by username %s", errServer, username)
 			return
 		} else if errServer == astichat.ErrNotFoundInStorage {
 			errServer = nil
-			srv.logger.Errorf("Invalid username %s", username)
+			astilog.Errorf("Invalid username %s", username)
 			errRequest = errors.New("Invalid username")
 			return
 		}
@@ -175,23 +173,23 @@ func (srv *ServerHTTP) HandleDownloadPOST(rw http.ResponseWriter, r *http.Reques
 		// Decode the token
 		var t astichat.Token
 		if t, errServer = astichat.DecodeToken(token, c.ServerPrivateKey); errServer != nil {
-			srv.logger.Errorf("%s while decoding token %s", errServer, token)
+			astilog.Errorf("%s while decoding token %s", errServer, token)
 			return
 		}
 
 		// Validate token
 		if errServer = t.Validate(c); errServer != nil {
-			srv.logger.Errorf("%s while validating token %s", errServer, token)
+			astilog.Errorf("%s while validating token %s", errServer, token)
 			return
 
 		}
 	} else {
 		// Username is unique
 		if _, errServer = srv.storage.ChattererFetchByUsername(username); errServer != nil && errServer != astichat.ErrNotFoundInStorage {
-			srv.logger.Errorf("%s while fetching chatterer by username %s", errServer, username)
+			astilog.Errorf("%s while fetching chatterer by username %s", errServer, username)
 			return
 		} else if errServer == nil {
-			srv.logger.Errorf("Username %s is already used", username)
+			astilog.Errorf("Username %s is already used", username)
 			errRequest = errors.New("Username is already used")
 			return
 		}
@@ -201,7 +199,7 @@ func (srv *ServerHTTP) HandleDownloadPOST(rw http.ResponseWriter, r *http.Reques
 	// OS is valid
 	var outputOS = r.FormValue("os")
 	if !builder.IsValidOS(outputOS) {
-		srv.logger.Errorf("Invalid os %s", outputOS)
+		astilog.Errorf("Invalid os %s", outputOS)
 		errRequest = errors.New("Invalid OS")
 		return
 	}
@@ -209,35 +207,35 @@ func (srv *ServerHTTP) HandleDownloadPOST(rw http.ResponseWriter, r *http.Reques
 	// Generate client's private key
 	var prvClient *astichat.PrivateKey
 	if prvClient, errServer = AstichatNewPrivateKey(password); errServer != nil {
-		srv.logger.Errorf("%s while generating private key", errServer)
+		astilog.Errorf("%s while generating private key", errServer)
 		return
 	}
 
 	// Get client's public key
 	var pubClient *astichat.PublicKey
 	if pubClient, errServer = prvClient.PublicKey(); errServer != nil {
-		srv.logger.Errorf("%s while getting public key from rsa private key", errServer)
+		astilog.Errorf("%s while getting public key from rsa private key", errServer)
 		return
 	}
 
 	// Generate server's private key
 	var prvServer *astichat.PrivateKey
 	if prvServer, errServer = AstichatNewPrivateKey(""); errServer != nil {
-		srv.logger.Errorf("%s while generating private key", errServer)
+		astilog.Errorf("%s while generating private key", errServer)
 		return
 	}
 
 	// Get server's public key
 	var pubServer *astichat.PublicKey
 	if pubServer, errServer = prvServer.PublicKey(); errServer != nil {
-		srv.logger.Errorf("%s while getting public key from rsa private key", errServer)
+		astilog.Errorf("%s while getting public key from rsa private key", errServer)
 		return
 	}
 
 	// Build client
 	var outputPath string
 	if outputPath, errServer = BuilderBuild(srv.builder, outputOS, username, prvClient, pubServer); errServer != nil {
-		srv.logger.Errorf("%s while building client for os %s", errServer, outputOS)
+		astilog.Errorf("%s while building client for os %s", errServer, outputOS)
 		return
 	}
 	defer OSRemove(outputPath)
@@ -249,12 +247,12 @@ func (srv *ServerHTTP) HandleDownloadPOST(rw http.ResponseWriter, r *http.Reques
 		c.Token = ""
 		c.TokenAt = time.Time{}
 		if errServer = srv.storage.ChattererUpdate(c); errServer != nil {
-			srv.logger.Errorf("%s while updating chatterer with username %s", errServer, username)
+			astilog.Errorf("%s while updating chatterer with username %s", errServer, username)
 			return
 		}
 	} else {
 		if _, errServer = srv.storage.ChattererCreate(username, pubClient, prvServer); errServer != nil {
-			srv.logger.Errorf("%s while creating chatterer with username %s", errServer, username)
+			astilog.Errorf("%s while creating chatterer with username %s", errServer, username)
 			return
 		}
 	}
@@ -262,7 +260,7 @@ func (srv *ServerHTTP) HandleDownloadPOST(rw http.ResponseWriter, r *http.Reques
 	// Read file
 	var b []byte
 	if b, errServer = IOUtilReadFile(outputPath); errServer != nil {
-		srv.logger.Errorf("%s while reading file %s", errServer, outputPath)
+		astilog.Errorf("%s while reading file %s", errServer, outputPath)
 		return
 	}
 
@@ -286,45 +284,45 @@ func (srv *ServerHTTP) handle(rw http.ResponseWriter, r *http.Request, expectedM
 	// Unmarshal
 	var b astichat.Body
 	if errServer = json.NewDecoder(r.Body).Decode(&b); errServer != nil {
-		srv.logger.Errorf("%s while unmarshaling body", errServer)
+		astilog.Errorf("%s while unmarshaling body", errServer)
 		return
 	}
 
 	// Retrieve chatterer
 	var c astichat.Chatterer
 	if c, errServer = srv.storage.ChattererFetchByUsername(b.Request.Username); errServer != nil {
-		srv.logger.Errorf("%s while fetching chatterer by username %s", errServer, b.Request.Username)
+		astilog.Errorf("%s while fetching chatterer by username %s", errServer, b.Request.Username)
 		return
 	}
 
 	// Process body
 	var msg []byte
 	if msg, errServer = b.Process(astichat.TimeNow(), c.ServerPrivateKey); errServer != nil {
-		srv.logger.Errorf("%s while processing body", errServer)
+		astilog.Errorf("%s while processing body", errServer)
 		return
 	}
 
 	// Validate message
 	if errServer = astichat.ValidateMessage(msg, expectedMsg); errServer != nil {
-		srv.logger.Errorf("%s while validating message", errServer)
+		astilog.Errorf("%s while validating message", errServer)
 		return
 	}
 
 	// Custom handler
 	if msg, errServer = fn(c); errServer != nil {
-		srv.logger.Errorf("%s while executing custom handler", errServer)
+		astilog.Errorf("%s while executing custom handler", errServer)
 		return
 	}
 
 	// Create new body
 	if b, errServer = astichat.NewBody(msg, astichat.TimeNow(), "", c.ClientPublicKey); errServer != nil {
-		srv.logger.Errorf("%s while creating new body", errServer)
+		astilog.Errorf("%s while creating new body", errServer)
 		return
 	}
 
 	// Write
 	if errServer = json.NewEncoder(rw).Encode(b); errServer != nil {
-		srv.logger.Errorf("%s while writing", errServer)
+		astilog.Errorf("%s while writing", errServer)
 		return
 	}
 }
@@ -339,7 +337,7 @@ func (srv *ServerHTTP) HandleNowGET(rw http.ResponseWriter, r *http.Request, p h
 
 	// Marshal
 	if errServer = json.NewEncoder(rw).Encode(astichat.TimeNow()); errServer != nil {
-		srv.logger.Errorf("%s while writing", errServer)
+		astilog.Errorf("%s while writing", errServer)
 		return
 	}
 }
@@ -354,7 +352,7 @@ func (srv *ServerHTTP) HandleTokenPOST(rw http.ResponseWriter, r *http.Request, 
 
 		// Store token
 		if err = srv.storage.ChattererUpdate(c); err != nil {
-			srv.logger.Errorf("%s while updating chatterer %s", err, c.ID)
+			astilog.Errorf("%s while updating chatterer %s", err, c.ID)
 			return
 		}
 		b = []byte(c.Token)

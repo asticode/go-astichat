@@ -13,16 +13,14 @@ import (
 // TODO Create rooms => creator controls who can join
 // TODO Handle client-2-server connections with rabbitmq
 type ServerUDP struct {
-	logger   astilog.Logger
 	peerPool *astichat.PeerPool
 	server   *astiudp.Server
 	storage  astichat.Storage
 }
 
 // NewServerUDP creates a new UDP sever
-func NewServerUDP(l astilog.Logger, stg astichat.Storage) *ServerUDP {
+func NewServerUDP(stg astichat.Storage) *ServerUDP {
 	return &ServerUDP{
-		logger:   l,
 		peerPool: astichat.NewPeerPool(),
 		server:   astiudp.NewServer(),
 		storage:  stg,
@@ -32,7 +30,6 @@ func NewServerUDP(l astilog.Logger, stg astichat.Storage) *ServerUDP {
 // Init initialises the UDP server
 func (s *ServerUDP) Init(c Configuration) (err error) {
 	// Init server
-	s.server.Logger = s.logger
 	if err = s.server.Init(c.Addr.UDP); err != nil {
 		return
 	}
@@ -90,7 +87,7 @@ func (s *ServerUDP) HandlePeerConnect() astiudp.ListenerFunc {
 			s.peerPool.Set(p)
 
 			// Log
-			s.logger.Infof("Welcome to %s", p)
+			astilog.Infof("Welcome to %s", p)
 		} else {
 			// TODO Peer is not new, check it has not updated its addr
 		}
@@ -112,7 +109,7 @@ func (s *ServerUDP) HandlePeerConnect() astiudp.ListenerFunc {
 				}
 
 				// Send peer.joined event
-				s.logger.Debugf("Sending peer.joined to %s", pp)
+				astilog.Debugf("Sending peer.joined to %s", pp)
 				if err = as.Write(astichat.EventNamePeerJoined, b, pp.Addr); err != nil {
 					return
 				}
@@ -132,7 +129,7 @@ func (s *ServerUDP) HandlePeerConnect() astiudp.ListenerFunc {
 		}
 
 		// Send peer.connected event
-		s.logger.Debugf("Sending peer.connected to %s", p)
+		astilog.Debugf("Sending peer.connected to %s", p)
 		if err = as.Write(astichat.EventNamePeerConnected, b, p.Addr); err != nil {
 			return
 		}
@@ -166,7 +163,7 @@ func (s *ServerUDP) HandlePeerDisconnect() astiudp.ListenerFunc {
 			s.peerPool.Del(p.Username)
 
 			// Log
-			s.logger.Infof("%s has left us", p)
+			astilog.Infof("%s has left us", p)
 
 			// Loop through peers
 			for _, pp := range s.peerPool.Peers() {
@@ -182,7 +179,7 @@ func (s *ServerUDP) HandlePeerDisconnect() astiudp.ListenerFunc {
 				}
 
 				// Send peer.disconnected event
-				s.logger.Debugf("Sending peer.disconnected to %s", pp)
+				astilog.Debugf("Sending peer.disconnected to %s", pp)
 				if err = as.Write(astichat.EventNamePeerDisconnected, b, pp.Addr); err != nil {
 					return
 				}

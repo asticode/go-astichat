@@ -14,20 +14,18 @@ import (
 // Server represents a server
 type Server struct {
 	channelQuit chan bool
-	logger      astilog.Logger
 	serverHTTP  *ServerHTTP
 	serverUDP   *ServerUDP
 	startedAt   time.Time
 }
 
 // NewServer returns a new server
-func NewServer(l astilog.Logger, c Configuration, b *builder.Builder, stg astichat.Storage) *Server {
-	l.Debug("Starting server")
+func NewServer(c Configuration, b *builder.Builder, stg astichat.Storage) *Server {
+	astilog.Debug("Starting server")
 	return &Server{
 		channelQuit: make(chan bool),
-		logger:      l,
-		serverHTTP:  NewServerHTTP(l, c.Addr.HTTP, c.PathStatic, b, stg),
-		serverUDP:   NewServerUDP(l, stg),
+		serverHTTP:  NewServerHTTP(c.Addr.HTTP, c.PathStatic, b, stg),
+		serverUDP:   NewServerUDP(stg),
 		startedAt:   time.Now(),
 	}
 }
@@ -51,7 +49,7 @@ func (s *Server) Init(c Configuration) (o *Server, err error) {
 // Close closes the server
 func (s *Server) Close() {
 	s.serverUDP.Close()
-	s.logger.Debug("Stopping server")
+	astilog.Debug("Stopping server")
 }
 
 // HandleSignals handles signals
@@ -60,7 +58,7 @@ func (s *Server) HandleSignals() {
 	signal.Notify(ch, syscall.SIGABRT, syscall.SIGKILL, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 	go func(s *Server) {
 		for sig := range ch {
-			s.logger.Debugf("Received signal %s", sig)
+			astilog.Debugf("Received signal %s", sig)
 			s.Stop()
 		}
 	}(s)

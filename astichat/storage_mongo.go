@@ -3,7 +3,6 @@ package astichat
 import (
 	"time"
 
-	"github.com/asticode/go-astilog"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -50,15 +49,13 @@ func (c ChattererMgo) Chatterer() Chatterer {
 
 // StorageMongo represents a mongo storage
 type StorageMongo struct {
-	logger astilog.Logger
-	mongo  *mgo.Session
+	mongo *mgo.Session
 }
 
 // NewStorageMongo creates a new mongo storage
-func NewStorageMongo(l astilog.Logger, s *mgo.Session) *StorageMongo {
+func NewStorageMongo(s *mgo.Session) *StorageMongo {
 	return &StorageMongo{
-		logger: l,
-		mongo:  s,
+		mongo: s,
 	}
 }
 

@@ -4,7 +4,7 @@ import "flag"
 
 // Flags
 var (
-	ServerHTTPAddr       = flag.String("server-http-addr", "", "the ĤTTP server addr")
+	ServerHTTPAddr       = flag.String("server-http-addr", "", "the HTTP server addr")
 	ServerUDPAddr        = flag.String("server-ud-addr", "", "the UDP server addr")
 	WorkingDirectoryPath = flag.String("working-directory", "", "the working directory path")
 )
